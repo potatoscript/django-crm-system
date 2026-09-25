@@ -1262,3 +1262,1260 @@ The project currently has a working Django backend, SQLite database, Customer mo
 Next development milestone:
 
 **Customer Management — List, Create, View, Edit, Delete and Search**
+
+---
+# 28. Customer List Page
+
+The next step was to create a dedicated Customer Management page.
+
+The goal is to allow users to manage customers through the CRM interface instead of relying on Django Admin.
+
+The first step was to create a Customer List view.
+
+Open:
+
+```text
+crm/views.py
+```
+
+Keep the existing `dashboard()` function and add:
+
+```python
+def customer_list(request):
+    customers = Customer.objects.order_by("name")
+
+    context = {
+        "customers": customers,
+    }
+
+    return render(request, "crm/customer_list.html", context)
+```
+
+## Explanation
+
+This line:
+
+```python
+customers = Customer.objects.order_by("name")
+```
+
+uses the Django ORM to retrieve all Customer records from the database.
+
+`order_by("name")` sorts the results alphabetically by customer name.
+
+For example:
+
+```text
+XYZ Industries
+ABC Manufacturing
+Kobe Engineering
+```
+
+will be returned as:
+
+```text
+ABC Manufacturing
+Kobe Engineering
+XYZ Industries
+```
+
+The `context` dictionary:
+
+```python
+context = {
+    "customers": customers,
+}
+```
+
+passes the Customer QuerySet to the HTML template.
+
+The template can then access the customers using:
+
+```django
+{% for customer in customers %}
+```
+
+---
+
+# 29. Add the Customer List URL
+
+Open:
+
+```text
+crm/urls.py
+```
+
+Update the URL configuration:
+
+```python
+from django.urls import path
+from . import views
+
+
+urlpatterns = [
+    path("", views.dashboard, name="dashboard"),
+    path("customers/", views.customer_list, name="customer_list"),
+]
+```
+
+The CRM now has the following routes:
+
+```text
+/                   → CRM Dashboard
+
+/customers/         → Customer List
+
+/admin/             → Django Administration
+```
+
+When the browser requests:
+
+```text
+http://127.0.0.1:8000/customers/
+```
+
+Django follows:
+
+```text
+Browser
+   ↓
+crm_project/urls.py
+   ↓
+crm/urls.py
+   ↓
+customer_list()
+   ↓
+Customer.objects.order_by("name")
+   ↓
+customer_list.html
+```
+
+---
+
+# 30. Create a Shared Base Template
+
+Originally, the entire page layout and CSS were contained inside:
+
+```text
+dashboard.html
+```
+
+If the same HTML were copied into every future CRM page, there would be duplicated code for:
+
+- Sidebar
+- Page layout
+- CSS
+- Buttons
+- Tables
+- Common navigation
+
+Instead, a shared template was created:
+
+```text
+crm/templates/crm/base.html
+```
+
+The template architecture becomes:
+
+```text
+                    base.html
+                       │
+              Shared CRM Layout
+                       │
+          ┌────────────┴────────────┐
+          │                         │
+   dashboard.html            customer_list.html
+          │                         │
+      Dashboard                  Customers
+```
+
+`base.html` contains the common:
+
+- HTML structure
+- Sidebar
+- Navigation
+- CSS
+- Main content area
+- Button styles
+- Table styles
+
+Individual pages only need to provide their own content.
+
+---
+
+# 31. Django Template Inheritance
+
+The shared template contains:
+
+```django
+{% block content %}
+
+{% endblock %}
+```
+
+This creates a section that child templates can replace with their own content.
+
+A child template begins with:
+
+```django
+{% extends "crm/base.html" %}
+```
+
+For example:
+
+```django
+{% extends "crm/base.html" %}
+
+
+{% block title %}
+CRM Dashboard
+{% endblock %}
+
+
+{% block content %}
+
+<h1>CRM Dashboard</h1>
+
+{% endblock %}
+```
+
+The concept is:
+
+```text
+base.html
+│
+├── Sidebar
+├── Navigation
+├── Common CSS
+│
+└── {% block content %}
+          ↑
+          │
+          ├── dashboard.html
+          ├── customer_list.html
+          ├── customer_form.html
+          └── future CRM pages
+```
+
+This prevents duplicated HTML and makes the CRM interface easier to maintain.
+
+For example, changing the sidebar in `base.html` automatically changes it for every page that extends `base.html`.
+
+---
+
+# 32. Update Dashboard to Use `base.html`
+
+The original `dashboard.html` contained the complete HTML document.
+
+After creating `base.html`, the dashboard was simplified.
+
+It now begins with:
+
+```django
+{% extends "crm/base.html" %}
+```
+
+and places dashboard-specific content inside:
+
+```django
+{% block content %}
+
+...
+
+{% endblock %}
+```
+
+The dashboard still receives:
+
+```django
+{{ customer_count }}
+```
+
+and:
+
+```django
+{% for customer in recent_customers %}
+```
+
+from the existing dashboard view.
+
+Therefore the database logic did not need to change.
+
+Only the presentation structure was improved.
+
+---
+
+# 33. Create the Customer List Template
+
+Create:
+
+```text
+crm/templates/crm/customer_list.html
+```
+
+The page extends the common CRM layout:
+
+```django
+{% extends "crm/base.html" %}
+```
+
+The Customer List receives:
+
+```python
+customers
+```
+
+from the `customer_list()` view.
+
+The template loops through the records:
+
+```django
+{% for customer in customers %}
+```
+
+and displays:
+
+```django
+{{ customer.name }}
+{{ customer.industry }}
+{{ customer.country }}
+{{ customer.email }}
+{{ customer.phone }}
+```
+
+The resulting page displays customer information in a table.
+
+Conceptually:
+
+```text
+SQLite
+   ↓
+Customer.objects.order_by("name")
+   ↓
+customer_list()
+   ↓
+context["customers"]
+   ↓
+customer_list.html
+   ↓
+Customer Table
+```
+
+---
+
+# 34. Connect the Customers Sidebar Link
+
+The Customers navigation item originally used:
+
+```html
+<a href="#">
+    Customers
+</a>
+```
+
+This was changed to:
+
+```django
+<a href="{% url 'customer_list' %}">
+    Customers
+</a>
+```
+
+The Django template tag:
+
+```django
+{% url 'customer_list' %}
+```
+
+looks for the URL whose name is:
+
+```text
+customer_list
+```
+
+which was defined in:
+
+```python
+path(
+    "customers/",
+    views.customer_list,
+    name="customer_list"
+)
+```
+
+Django therefore generates:
+
+```text
+/customers/
+```
+
+Using named URLs is preferable to hard-coding URLs because the actual path can later be changed without rewriting every template.
+
+---
+
+# 35. Create `forms.py`
+
+To allow customers to be created through the CRM interface, a Django `ModelForm` was introduced.
+
+Create:
+
+```text
+crm/forms.py
+```
+
+Add:
+
+```python
+from django import forms
+from .models import Customer
+
+
+class CustomerForm(forms.ModelForm):
+
+    class Meta:
+        model = Customer
+
+        fields = [
+            "name",
+            "industry",
+            "website",
+            "phone",
+            "email",
+            "address",
+            "country",
+        ]
+```
+
+## What is a ModelForm?
+
+The existing:
+
+```python
+class Customer(models.Model):
+```
+
+defines how Customer information is stored.
+
+The new:
+
+```python
+class CustomerForm(forms.ModelForm):
+```
+
+creates a form based on that model.
+
+The relationship is:
+
+```text
+Customer Model
+      ↓
+CustomerForm
+      ↓
+HTML Form
+      ↓
+User Input
+      ↓
+Validation
+      ↓
+Customer Record
+```
+
+The following fields are included:
+
+```text
+name
+industry
+website
+phone
+email
+address
+country
+```
+
+The following fields are not included:
+
+```text
+created_at
+updated_at
+```
+
+because Django automatically manages them.
+
+---
+
+# 36. Create the Add Customer View
+
+The next step was to create a view that handles both displaying and processing the Customer form.
+
+Open:
+
+```text
+crm/views.py
+```
+
+The required imports are:
+
+```python
+from django.shortcuts import redirect, render
+
+from .forms import CustomerForm
+from .models import Customer
+```
+
+Add:
+
+```python
+def customer_create(request):
+
+    if request.method == "POST":
+        form = CustomerForm(request.POST)
+
+        if form.is_valid():
+            form.save()
+
+            return redirect("customer_list")
+
+    else:
+        form = CustomerForm()
+
+    context = {
+        "form": form,
+    }
+
+    return render(
+        request,
+        "crm/customer_form.html",
+        context
+    )
+```
+
+This view handles two different types of HTTP requests:
+
+```text
+GET
+POST
+```
+
+---
+
+# 37. Understanding GET Requests
+
+When the browser first opens:
+
+```text
+/customers/add/
+```
+
+the browser sends a GET request.
+
+Therefore:
+
+```python
+if request.method == "POST":
+```
+
+is false.
+
+Django executes:
+
+```python
+else:
+    form = CustomerForm()
+```
+
+This creates an empty Customer form.
+
+The process is:
+
+```text
+Browser
+   ↓
+GET /customers/add/
+   ↓
+customer_create()
+   ↓
+CustomerForm()
+   ↓
+Empty Form
+   ↓
+customer_form.html
+   ↓
+Browser
+```
+
+GET is normally used when retrieving or displaying information.
+
+---
+
+# 38. Understanding POST Requests
+
+After entering Customer information and clicking the Save button, the browser sends a POST request.
+
+Django executes:
+
+```python
+if request.method == "POST":
+```
+
+and creates:
+
+```python
+form = CustomerForm(request.POST)
+```
+
+`request.POST` contains the submitted form data.
+
+For example:
+
+```text
+name       = Kobe Engineering
+industry   = Engineering
+phone      = 078-555-1234
+email      = sales@example.com
+country    = Japan
+```
+
+The form is then validated:
+
+```python
+if form.is_valid():
+```
+
+If validation succeeds:
+
+```python
+form.save()
+```
+
+creates the Customer record in the database.
+
+The complete process is:
+
+```text
+Customer Form
+      ↓
+User enters data
+      ↓
+POST Request
+      ↓
+CustomerForm(request.POST)
+      ↓
+form.is_valid()
+      ↓
+form.save()
+      ↓
+Django ORM
+      ↓
+SQLite
+```
+
+---
+
+# 39. Redirect After Saving
+
+After successfully creating the Customer:
+
+```python
+return redirect("customer_list")
+```
+
+redirects the browser to the Customer List.
+
+This produces the workflow:
+
+```text
+/customers/add/
+      ↓
+Enter Customer
+      ↓
+Save Customer
+      ↓
+Database
+      ↓
+redirect()
+      ↓
+/customers/
+```
+
+This prevents the user from remaining on the submitted form after the record has been created.
+
+---
+
+# 40. Add the Customer Create URL
+
+Open:
+
+```text
+crm/urls.py
+```
+
+Add:
+
+```python
+path(
+    "customers/add/",
+    views.customer_create,
+    name="customer_create"
+),
+```
+
+The URL configuration now contains:
+
+```text
+/                       Dashboard
+
+/customers/             Customer List
+
+/customers/add/         Add Customer
+
+/admin/                 Django Admin
+```
+
+---
+
+# 41. Connect the Add Customer Button
+
+The Customer List contains an Add Customer button.
+
+The correct link is:
+
+```django
+<a href="{% url 'customer_create' %}" class="button">
+    + Add Customer
+</a>
+```
+
+Django resolves:
+
+```django
+{% url 'customer_create' %}
+```
+
+using:
+
+```python
+name="customer_create"
+```
+
+and generates:
+
+```text
+/customers/add/
+```
+
+---
+
+# 42. Error Encountered — Incorrect URL Template Syntax
+
+During development, clicking the Add Customer button initially produced:
+
+```text
+Page not found (404)
+```
+
+The browser attempted to access:
+
+```text
+/customers/% url 'customer_create' %
+```
+
+The reason was an incorrectly written Django template tag.
+
+Incorrect:
+
+```text
+% url 'customer_create' %
+```
+
+Correct:
+
+```django
+{% url 'customer_create' %}
+```
+
+Django template tags require:
+
+```text
+{% ... %}
+```
+
+including both:
+
+```text
+{
+}
+```
+
+curly braces.
+
+Without them, Django treats:
+
+```text
+% url 'customer_create' %
+```
+
+as ordinary text.
+
+The browser then interpreted the text as part of a relative URL.
+
+After correcting the template to:
+
+```django
+{% url 'customer_create' %}
+```
+
+the button correctly opened:
+
+```text
+/customers/add/
+```
+
+---
+
+# 43. Create the Customer Form Template
+
+Create:
+
+```text
+crm/templates/crm/customer_form.html
+```
+
+The form uses:
+
+```html
+<form method="post">
+```
+
+The fields are displayed using Django form objects.
+
+For example:
+
+```django
+{{ form.name }}
+{{ form.industry }}
+{{ form.website }}
+{{ form.phone }}
+{{ form.email }}
+{{ form.address }}
+{{ form.country }}
+```
+
+Field errors can also be displayed:
+
+```django
+{{ form.name.errors }}
+```
+
+The Save button uses:
+
+```html
+<button type="submit" class="button">
+    Save Customer
+</button>
+```
+
+When clicked, the browser submits the form as a POST request.
+
+---
+
+# 44. CSRF Protection
+
+The Customer form includes:
+
+```django
+{% csrf_token %}
+```
+
+CSRF stands for:
+
+```text
+Cross-Site Request Forgery
+```
+
+Django uses CSRF protection for POST requests.
+
+The standard Django POST form pattern is:
+
+```html
+<form method="post">
+
+    {% csrf_token %}
+
+    ...
+
+</form>
+```
+
+The CSRF token helps Django verify that the request came from a valid form generated by the application.
+
+Without the token, Django will normally reject the POST request.
+
+---
+
+# 45. Add Form Styling
+
+The shared:
+
+```text
+base.html
+```
+
+was extended with CSS for:
+
+- Form container
+- Form fields
+- Labels
+- Text areas
+- Focus states
+- Buttons
+- Cancel links
+- Validation errors
+
+Because the styles are stored in `base.html`, they can later be reused by:
+
+```text
+Add Customer
+Edit Customer
+Add Contact
+Edit Contact
+Add Opportunity
+Edit Opportunity
+```
+
+This is another advantage of having a shared base template.
+
+---
+
+# 46. Error Encountered — `redirect` Not Defined
+
+After submitting the Customer form, Django returned:
+
+```text
+NameError at /customers/add/
+
+name 'redirect' is not defined
+```
+
+The error occurred at:
+
+```python
+return redirect("customer_list")
+```
+
+The reason was that `redirect` had not been imported.
+
+The original import was:
+
+```python
+from django.shortcuts import render
+```
+
+It was changed to:
+
+```python
+from django.shortcuts import redirect, render
+```
+
+## Explanation
+
+Python only knows names that have been:
+
+- Defined
+- Imported
+- Made available by another valid mechanism
+
+Although Django provides a `redirect()` helper, it must be imported before it can be used in `views.py`.
+
+After importing:
+
+```python
+redirect
+```
+
+the following works:
+
+```python
+return redirect("customer_list")
+```
+
+---
+
+# 47. Important Observation About `form.save()`
+
+The `redirect` error happened after:
+
+```python
+form.save()
+```
+
+had already executed.
+
+Therefore the Customer may already have been inserted into SQLite even though the browser displayed an error page.
+
+The sequence was:
+
+```text
+form.is_valid()
+      ↓
+form.save()          ← Customer saved successfully
+      ↓
+redirect()           ← Error occurred here
+```
+
+For this reason, the Customer List was checked before submitting the same form again.
+
+Otherwise a duplicate Customer could have been created.
+
+This is an important debugging lesson:
+
+> A web request can fail after some database operations have already completed.
+
+---
+
+# 48. Customer Creation Successfully Tested
+
+After fixing the missing `redirect` import, the complete Customer creation process worked successfully.
+
+The user can now:
+
+1. Open the Customer List.
+2. Click **+ Add Customer**.
+3. Enter Customer information.
+4. Submit the form.
+5. Have Django validate the information.
+6. Save the Customer to SQLite.
+7. Automatically return to the Customer List.
+8. See the new Customer in the table.
+
+The Dashboard Customer count also updates automatically because it uses:
+
+```python
+Customer.objects.count()
+```
+
+For example:
+
+```text
+Before adding customer:
+
+Customers
+1
+```
+
+After adding another customer:
+
+```text
+Customers
+2
+```
+
+No dashboard source code needs to be changed.
+
+---
+
+# 49. Current CRUD Progress
+
+CRUD means:
+
+```text
+C = Create
+R = Read
+U = Update
+D = Delete
+```
+
+Current status:
+
+```text
+Create    ✅
+Read      ✅
+Update    ⬜
+Delete    ⬜
+```
+
+### Create
+
+Implemented using:
+
+```text
+/customers/add/
+```
+
+### Read
+
+Implemented using:
+
+```text
+/customers/
+```
+
+The next stages will implement:
+
+```text
+/customers/<id>/
+
+/customers/<id>/edit/
+
+/customers/<id>/delete/
+```
+
+---
+
+# 50. Updated Project Structure
+
+The project now contains:
+
+```text
+crm-system/
+│
+├── .venv/
+│
+├── crm/
+│   │
+│   ├── migrations/
+│   │   ├── __init__.py
+│   │   └── 0001_initial.py
+│   │
+│   ├── templates/
+│   │   └── crm/
+│   │       ├── base.html
+│   │       ├── dashboard.html
+│   │       ├── customer_list.html
+│   │       └── customer_form.html
+│   │
+│   ├── __init__.py
+│   ├── admin.py
+│   ├── apps.py
+│   ├── forms.py
+│   ├── models.py
+│   ├── tests.py
+│   ├── urls.py
+│   └── views.py
+│
+├── crm_project/
+│   ├── __init__.py
+│   ├── asgi.py
+│   ├── settings.py
+│   ├── urls.py
+│   └── wsgi.py
+│
+├── db.sqlite3
+├── manage.py
+└── README.md
+```
+
+The important additions from this development session are:
+
+```text
+forms.py
+base.html
+customer_list.html
+customer_form.html
+```
+
+---
+
+# 51. Updated Development Roadmap
+
+## Completed
+
+- [x] Create Python project
+- [x] Create virtual environment
+- [x] Install Django
+- [x] Create Django project
+- [x] Configure SQLite database
+- [x] Create CRM application
+- [x] Create Customer model
+- [x] Create database migration
+- [x] Configure Django Admin
+- [x] Create administrator account
+- [x] Add first test customer
+- [x] Create CRM dashboard
+- [x] Display customer count
+- [x] Display recent customers
+- [x] Create shared base template
+- [x] Implement template inheritance
+- [x] Create Customer List page
+- [x] Connect Customers navigation
+- [x] Create `CustomerForm`
+- [x] Create Add Customer page
+- [x] Process GET requests
+- [x] Process POST requests
+- [x] Validate Customer data
+- [x] Save Customer to database
+- [x] Redirect after Customer creation
+- [x] Add CSRF protection
+- [x] Add reusable form styling
+- [x] Debug incorrect Django URL template syntax
+- [x] Debug missing `redirect` import
+
+## Next
+
+- [ ] Customer Detail page
+- [ ] Customer ID / Primary Key routing
+- [ ] Edit Customer
+- [ ] Delete Customer
+- [ ] Customer search
+- [ ] Contact model and management
+- [ ] Opportunity model
+- [ ] Sales pipeline
+- [ ] Activities / follow-ups
+- [ ] User authentication
+- [ ] User permissions
+- [ ] Reports and charts
+- [ ] PostgreSQL migration
+- [ ] REST API
+- [ ] AI-assisted CRM functions
+
+---
+
+# Day 2 Project Status
+
+**Customer Management — Create and Read completed**
+
+The CRM can now create and display Customer records through its own user interface without requiring Django Admin.
+
+Current request flow:
+
+```text
+Browser
+   ↓
+CRM URL
+   ↓
+Django View
+   ↓
+CustomerForm
+   ↓
+Validation
+   ↓
+Django ORM
+   ↓
+SQLite Database
+   ↓
+Redirect
+   ↓
+Customer List
+```
+
+Current CRUD status:
+
+```text
+Create    ██████████  Complete
+Read      ██████████  Complete
+Update    ░░░░░░░░░░  Next
+Delete    ░░░░░░░░░░  Next
+```
+
+Next development milestone:
+
+**Customer Details, Edit, Delete and Search**
+
+Append that directly after your existing README. For today's Git commit, I would use:
+
+```powershell
+git add .
+git commit -m "Day 2 - Add Customer List and Create Customer Form"
+git push
+```
+
+
