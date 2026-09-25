@@ -2,61 +2,34 @@
 
 
 {% block title %}
-CRM Dashboard
+Customers
 {% endblock %}
 
 
 {% block content %}
 
 
-<h1>CRM Dashboard</h1>
+<div class="page-header">
 
-<p>Welcome to your CRM system.</p>
+    <div>
 
+        <h1>Customers</h1>
 
-<div class="cards">
-
-
-    <div class="card">
-
-        <h3>Customers</h3>
-
-        <div class="number">
-            {{ customer_count }}
-        </div>
+        <p>
+            Manage CRM customer accounts.
+        </p>
 
     </div>
 
 
-    <div class="card">
-
-        <h3>Contacts</h3>
-
-        <div class="number">
-            0
-        </div>
-
-    </div>
-
-
-    <div class="card">
-
-        <h3>Opportunities</h3>
-
-        <div class="number">
-            0
-        </div>
-
-    </div>
-
+    <a href="{% url 'customer_create' %}" class="button">
+        + Add Customer
+    </a>
 
 </div>
 
 
 <div class="table-container">
-
-
-    <h2>Recent Customers</h2>
 
 
     <table>
@@ -65,13 +38,15 @@ CRM Dashboard
 
         <tr>
 
-            <th>Customer</th>
+            <th>Name</th>
 
             <th>Industry</th>
 
             <th>Country</th>
 
             <th>Email</th>
+
+            <th>Phone</th>
 
         </tr>
 
@@ -81,7 +56,7 @@ CRM Dashboard
         <tbody>
 
 
-        {% for customer in recent_customers %}
+        {% for customer in customers %}
 
         <tr>
 
@@ -101,6 +76,10 @@ CRM Dashboard
                 {{ customer.email }}
             </td>
 
+            <td>
+                {{ customer.phone }}
+            </td>
+
         </tr>
 
 
@@ -108,8 +87,8 @@ CRM Dashboard
 
         <tr>
 
-            <td colspan="4">
-                No customers yet.
+            <td colspan="5">
+                No customers found.
             </td>
 
         </tr>

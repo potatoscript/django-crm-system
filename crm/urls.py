@@ -3,5 +3,21 @@ from . import views
 
 
 urlpatterns = [
-    path("", views.dashboard, name="dashboard"),
+    path(
+        "",
+        views.dashboard,
+        name="dashboard"
+    ),
+
+    path(
+        "customers/",
+        views.customer_list,
+        name="customer_list"
+    ),
+
+    path(
+        "customers/add/",
+        views.customer_create,
+        name="customer_create"
+    ),
 ]

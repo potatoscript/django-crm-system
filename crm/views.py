@@ -1,5 +1,6 @@
-from django.shortcuts import render
+from django.shortcuts import redirect,render
 from .models import Customer
+from .forms import CustomerForm
 
 
 def dashboard(request):
@@ -12,3 +13,35 @@ def dashboard(request):
     }
 
     return render(request, "crm/dashboard.html", context)
+
+def customer_list(request):
+    customers = Customer.objects.order_by("name")
+
+    context = {
+        "customers": customers,
+    }
+
+    return render(request, "crm/customer_list.html", context)
+
+def customer_create(request):
+
+    if request.method == "POST":
+        form = CustomerForm(request.POST)
+
+        if form.is_valid():
+            form.save()
+
+            return redirect("customer_list")
+
+    else:
+        form = CustomerForm()
+
+    context = {
+        "form": form,
+    }
+
+    return render(
+        request,
+        "crm/customer_form.html",
+        context
+    )
