@@ -20,6 +20,101 @@ The system will eventually provide:
 
 ---
 
+# Table of Contents
+
+## Day 1 — CRM Foundation
+
+1. [Development Environment](#1-development-environment)
+2. [Create the Project Directory](#2-create-the-project-directory)
+3. [Create a Python Virtual Environment](#3-create-a-python-virtual-environment)
+4. [Virtual Environment Creation Problem](#4-virtual-environment-creation-problem)
+5. [Check pip](#5-check-pip)
+6. [Recreate the Virtual Environment](#6-recreate-the-virtual-environment)
+7. [Verify the Virtual Environment](#7-verify-the-virtual-environment)
+8. [Upgrade pip](#8-upgrade-pip)
+9. [Install Django](#9-install-django)
+10. [Create the Django Project](#10-create-the-django-project)
+11. [Create the Initial Django Database](#11-create-the-initial-django-database)
+12. [Start the Django Development Server](#12-start-the-django-development-server)
+13. [Create the CRM Application](#13-create-the-crm-application)
+14. [Register the CRM Application](#14-register-the-crm-application)
+15. [Create the Customer Model](#15-create-the-customer-model)
+16. [Create the Customer Database Table](#16-create-the-customer-database-table)
+17. [Register Customer in Django Admin](#17-register-customer-in-django-admin)
+18. [Create a Django Administrator](#18-create-a-django-administrator)
+19. [Create the CRM Dashboard View](#19-create-the-crm-dashboard-view)
+20. [Create CRM URL Routing](#20-create-crm-url-routing)
+21. [Create the Dashboard Template](#21-create-the-dashboard-template)
+22. [Current Dashboard](#22-current-dashboard)
+23. [Current Project Structure](#23-current-project-structure)
+24. [Development Roadmap](#24-development-roadmap)
+25. [Planned CRM Architecture](#25-planned-crm-architecture)
+26. [Future AI Features](#26-future-ai-features)
+27. [Development Notes](#27-development-notes)
+
+## Day 2 — Customer List and Create
+
+28. [Customer List Page](#28-customer-list-page)
+29. [Add the Customer List URL](#29-add-the-customer-list-url)
+30. [Create a Shared Base Template](#30-create-a-shared-base-template)
+31. [Django Template Inheritance](#31-django-template-inheritance)
+32. [Update Dashboard to Use base.html](#32-update-dashboard-to-use-basehtml)
+33. [Create the Customer List Template](#33-create-the-customer-list-template)
+34. [Connect the Customers Sidebar Link](#34-connect-the-customers-sidebar-link)
+35. [Create forms.py](#35-create-formspy)
+36. [Create the Add Customer View](#36-create-the-add-customer-view)
+37. [Understanding GET Requests](#37-understanding-get-requests)
+38. [Understanding POST Requests](#38-understanding-post-requests)
+39. [Redirect After Saving](#39-redirect-after-saving)
+40. [Add the Customer Create URL](#40-add-the-customer-create-url)
+41. [Connect the Add Customer Button](#41-connect-the-add-customer-button)
+42. [Error Encountered — Incorrect URL Template Syntax](#42-error-encountered--incorrect-url-template-syntax)
+43. [Create the Customer Form Template](#43-create-the-customer-form-template)
+44. [CSRF Protection](#44-csrf-protection)
+45. [Add Form Styling](#45-add-form-styling)
+46. [Error Encountered — redirect Not Defined](#46-error-encountered--redirect-not-defined)
+47. [Important Observation About form.save()](#47-important-observation-about-formsave)
+48. [Customer Creation Successfully Tested](#48-customer-creation-successfully-tested)
+49. [Current CRUD Progress](#49-current-crud-progress)
+50. [Updated Project Structure](#50-updated-project-structure)
+51. [Updated Development Roadmap](#51-updated-development-roadmap)
+
+## Day 3 — Customer Detail, Update and Delete
+
+52. [Python 3.11 Virtual Environment Problem](#52-python-311-virtual-environment-problem)
+53. [Recreate the Virtual Environment with Python 3.13](#53-recreate-the-virtual-environment-with-python-313)
+54. [Reinstall Django in the New Virtual Environment](#54-reinstall-django-in-the-new-virtual-environment)
+55. [Configure VS Code to Use the New Virtual Environment](#55-configure-vs-code-to-use-the-new-virtual-environment)
+56. [Database Configuration Location](#56-database-configuration-location)
+57. [Customer Detail Page](#57-customer-detail-page)
+58. [Understanding Django Primary Keys](#58-understanding-django-primary-keys)
+59. [Import get_object_or_404](#59-import-get_object_or_404)
+60. [Create the Customer Detail View](#60-create-the-customer-detail-view)
+61. [Add the Customer Detail URL](#61-add-the-customer-detail-url)
+62. [Make Customer Names Clickable](#62-make-customer-names-clickable)
+63. [Create the Customer Detail Template](#63-create-the-customer-detail-template)
+64. [Customer Detail Request Flow](#64-customer-detail-request-flow)
+65. [Create the Edit Customer View](#65-create-the-edit-customer-view)
+66. [Understanding instance=customer](#66-understanding-instancecustomer)
+67. [Add the Edit Customer URL](#67-add-the-edit-customer-url)
+68. [Reuse the Customer Form Template](#68-reuse-the-customer-form-template)
+69. [Edit Customer Database Operation](#69-edit-customer-database-operation)
+70. [Create the Delete Customer View](#70-create-the-delete-customer-view)
+71. [Why Delete Uses POST](#71-why-delete-uses-post)
+72. [Add the Delete Customer URL](#72-add-the-delete-customer-url)
+73. [Add the Delete Customer Button](#73-add-the-delete-customer-button)
+74. [Create the Delete Confirmation Page](#74-create-the-delete-confirmation-page)
+75. [Delete Customer Request Flow](#75-delete-customer-request-flow)
+76. [Primary Keys After Deletion](#76-primary-keys-after-deletion)
+77. [Current Customer URL Architecture](#77-current-customer-url-architecture)
+78. [Current Customer Request Architecture](#78-current-customer-request-architecture)
+79. [Customer CRUD Completed](#79-customer-crud-completed)
+80. [Updated Project Structure](#80-updated-project-structure)
+81. [Updated Development Roadmap](#81-updated-development-roadmap)
+
+---
+
+
 # 1. Development Environment
 
 The project is currently developed with:
@@ -2449,24 +2544,6 @@ customer_form.html
 - [x] Debug incorrect Django URL template syntax
 - [x] Debug missing `redirect` import
 
-## Next
-
-- [ ] Customer Detail page
-- [ ] Customer ID / Primary Key routing
-- [ ] Edit Customer
-- [ ] Delete Customer
-- [ ] Customer search
-- [ ] Contact model and management
-- [ ] Opportunity model
-- [ ] Sales pipeline
-- [ ] Activities / follow-ups
-- [ ] User authentication
-- [ ] User permissions
-- [ ] Reports and charts
-- [ ] PostgreSQL migration
-- [ ] REST API
-- [ ] AI-assisted CRM functions
-
 ---
 
 # Day 2 Project Status
@@ -2517,5 +2594,1549 @@ git add .
 git commit -m "Day 2 - Add Customer List and Create Customer Form"
 git push
 ```
+
+# Day 3 — Customer Detail, Update and Delete
+
+Day 3 continued the Customer Management module.
+
+At the beginning of Day 3, the CRM already supported:
+
+```text
+Create    ✅
+Read      ✅ Customer List
+Update    ⬜
+Delete    ⬜
+```
+
+The objectives for Day 3 were:
+
+- Add an individual Customer Detail page
+- Understand Django primary keys
+- Retrieve individual database records
+- Edit existing Customer records
+- Reuse the existing `CustomerForm`
+- Delete Customer records
+- Add a confirmation page before deletion
+- Complete the basic Customer CRUD cycle
+
+During the development session, the Python environment was also migrated from Python 3.11 to Python 3.13.
+
+---
+
+# 52. Python 3.11 Virtual Environment Problem
+
+Before continuing development, the existing virtual environment stopped working after Python 3.11 was uninstalled from Windows.
+
+Running:
+
+```powershell
+python manage.py runserver
+```
+
+produced:
+
+```text
+No Python at '"C:\Python311\python.exe'
+```
+
+Even though PowerShell displayed:
+
+```text
+(.venv)
+```
+
+the existing virtual environment had originally been created using Python 3.11.
+
+A Python virtual environment remembers the Python installation that was used to create it.
+
+Conceptually:
+
+```text
+Old .venv
+    │
+    └── Created using
+            │
+            ↓
+    C:\Python311\python.exe
+```
+
+After Python 3.11 was removed, the virtual environment could no longer find its original Python interpreter.
+
+The CRM source code itself was not damaged.
+
+The problem was only the virtual environment.
+
+---
+
+# 53. Recreate the Virtual Environment with Python 3.13
+
+The old `.venv` was removed and recreated using Python 3.13.
+
+Check the installed Python versions:
+
+```powershell
+py -0p
+```
+
+Check Python 3.13 directly:
+
+```powershell
+py -3.13 --version
+```
+
+The old virtual environment can be removed with:
+
+```powershell
+Remove-Item -Recurse -Force .venv
+```
+
+Verify that it was removed:
+
+```powershell
+Test-Path .venv
+```
+
+Expected result:
+
+```text
+False
+```
+
+Create a new virtual environment explicitly using Python 3.13:
+
+```powershell
+py -3.13 -m venv .venv
+```
+
+Activate it:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+Verify Python:
+
+```powershell
+python --version
+```
+
+The environment should now use:
+
+```text
+Python 3.13.x
+```
+
+The exact Python executable can be checked with:
+
+```powershell
+python -c "import sys; print(sys.executable)"
+```
+
+It should point to:
+
+```text
+D:\MyProjects\crm-system\.venv\Scripts\python.exe
+```
+
+The important architecture is now:
+
+```text
+Python 3.13
+     │
+     ↓
+.venv
+     │
+     ├── Python
+     ├── pip
+     └── Django
+          │
+          ↓
+      CRM Project
+```
+
+---
+
+# 54. Reinstall Django in the New Virtual Environment
+
+Because Python packages are stored inside the virtual environment, deleting `.venv` also removed the Django installation associated with the old environment.
+
+Upgrade pip:
+
+```powershell
+python -m pip install --upgrade pip
+```
+
+Install Django 5.2:
+
+```powershell
+python -m pip install "Django>=5.2,<5.3"
+```
+
+Verify Django:
+
+```powershell
+python -m django --version
+```
+
+Then start the existing CRM:
+
+```powershell
+python manage.py runserver
+```
+
+There was no need to recreate:
+
+- `crm_project`
+- `crm`
+- Customer model
+- migrations
+- templates
+- SQLite database
+
+Those files exist outside `.venv`.
+
+---
+
+# 55. Configure VS Code to Use the New Virtual Environment
+
+Visual Studio Code was configured to use the new Python 3.13 environment.
+
+Open the Command Palette:
+
+```text
+Ctrl + Shift + P
+```
+
+Select:
+
+```text
+Python: Select Interpreter
+```
+
+Then select:
+
+```text
+.venv\Scripts\python.exe
+```
+
+The selected interpreter should correspond to Python 3.13.
+
+This ensures that VS Code, the terminal, Python extensions, and Django development use the project's virtual environment rather than an unrelated global Python installation.
+
+---
+
+# 56. Database Configuration Location
+
+The Django database configuration is located in:
+
+```text
+crm_project/settings.py
+```
+
+The current configuration uses SQLite:
+
+```python
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
+    }
+}
+```
+
+This means:
+
+```text
+ENGINE
+   ↓
+django.db.backends.sqlite3
+   ↓
+Use SQLite
+```
+
+and:
+
+```text
+NAME
+   ↓
+BASE_DIR / "db.sqlite3"
+   ↓
+D:\MyProjects\crm-system\db.sqlite3
+```
+
+There are three related but different parts:
+
+```text
+settings.py
+    ↓
+Defines which database Django uses
+
+models.py
+    ↓
+Defines the application's data structure
+
+db.sqlite3
+    ↓
+Contains the actual database records
+```
+
+The current Customer data is stored in the SQLite database.
+
+---
+
+# 57. Customer Detail Page
+
+The Customer List already displayed multiple customers.
+
+The next requirement was to allow each Customer to have an individual page.
+
+The desired URL structure was:
+
+```text
+/customers/1/
+/customers/2/
+/customers/3/
+```
+
+Each number identifies a specific Customer database record.
+
+For example:
+
+```text
+ID 1 → ABC Manufacturing
+
+ID 2 → Kobe Engineering
+```
+
+Therefore:
+
+```text
+/customers/2/
+```
+
+displays Customer 2.
+
+---
+
+# 58. Understanding Django Primary Keys
+
+The Customer model did not explicitly define an `id` field:
+
+```python
+class Customer(models.Model):
+    name = models.CharField(max_length=200)
+```
+
+However, Django automatically provides a primary key when no custom primary key is specified.
+
+Conceptually, the database contains:
+
+```text
+crm_customer
+
+id    name
+--------------------------------
+1     ABC Manufacturing
+2     Kobe Engineering
+3     Osaka Industries
+```
+
+The primary key uniquely identifies a database record.
+
+Django commonly refers to a primary key as:
+
+```text
+pk
+```
+
+which means:
+
+```text
+Primary Key
+```
+
+The primary key is used in the Customer Detail, Edit, and Delete URLs.
+
+---
+
+# 59. Import `get_object_or_404`
+
+The following import was added to:
+
+```text
+crm/views.py
+```
+
+```python
+from django.shortcuts import get_object_or_404, redirect, render
+```
+
+`get_object_or_404()` is used to retrieve a database object safely.
+
+For example:
+
+```python
+customer = get_object_or_404(Customer, pk=pk)
+```
+
+means:
+
+```text
+Find the Customer
+whose primary key equals pk.
+```
+
+If the Customer exists, Django returns it.
+
+If it does not exist, Django returns:
+
+```text
+404 Not Found
+```
+
+instead of allowing an unhandled object lookup error.
+
+---
+
+# 60. Create the Customer Detail View
+
+The following view was added to:
+
+```text
+crm/views.py
+```
+
+```python
+def customer_detail(request, pk):
+    customer = get_object_or_404(Customer, pk=pk)
+
+    context = {
+        "customer": customer,
+    }
+
+    return render(
+        request,
+        "crm/customer_detail.html",
+        context
+    )
+```
+
+If the browser requests:
+
+```text
+/customers/2/
+```
+
+then:
+
+```python
+pk = 2
+```
+
+Django executes:
+
+```python
+get_object_or_404(Customer, pk=2)
+```
+
+and retrieves Customer 2.
+
+The resulting object is passed to the template using:
+
+```python
+context = {
+    "customer": customer,
+}
+```
+
+The template can then access:
+
+```django
+{{ customer.name }}
+{{ customer.industry }}
+{{ customer.email }}
+{{ customer.phone }}
+{{ customer.country }}
+```
+
+---
+
+# 61. Add the Customer Detail URL
+
+The following URL was added to:
+
+```text
+crm/urls.py
+```
+
+```python
+path(
+    "customers/<int:pk>/",
+    views.customer_detail,
+    name="customer_detail"
+),
+```
+
+The important part is:
+
+```text
+<int:pk>
+```
+
+This means:
+
+```text
+int
+ ↓
+Accept an integer from the URL
+
+pk
+ ↓
+Pass that integer to the view using the name "pk"
+```
+
+For example:
+
+```text
+/customers/2/
+```
+
+becomes:
+
+```python
+customer_detail(request, pk=2)
+```
+
+The request flow is:
+
+```text
+/customers/2/
+      ↓
+<int:pk>
+      ↓
+pk = 2
+      ↓
+customer_detail()
+      ↓
+get_object_or_404()
+      ↓
+Customer ID 2
+```
+
+---
+
+# 62. Make Customer Names Clickable
+
+The Customer List was updated so that the Customer name links to the individual Customer Detail page.
+
+The Customer name changed from:
+
+```django
+<td>
+    {{ customer.name }}
+</td>
+```
+
+to:
+
+```django
+<td>
+    <a href="{% url 'customer_detail' customer.pk %}">
+        {{ customer.name }}
+    </a>
+</td>
+```
+
+This URL requires a Customer primary key.
+
+For example:
+
+```django
+{% url 'customer_detail' customer.pk %}
+```
+
+for Customer 2 generates:
+
+```text
+/customers/2/
+```
+
+This is different from a URL such as:
+
+```django
+{% url 'customer_create' %}
+```
+
+because `customer_create` does not require a database ID.
+
+---
+
+# 63. Create the Customer Detail Template
+
+A new template was created:
+
+```text
+crm/templates/crm/customer_detail.html
+```
+
+The page displays:
+
+- Customer name
+- Industry
+- Country
+- Email
+- Phone
+- Website
+- Address
+- Created date
+- Last updated date
+
+Customer fields are accessed using expressions such as:
+
+```django
+{{ customer.name }}
+```
+
+and:
+
+```django
+{{ customer.industry }}
+```
+
+Optional values can use the Django `default` filter:
+
+```django
+{{ customer.industry|default:"-" }}
+```
+
+If the field contains:
+
+```text
+Manufacturing
+```
+
+the page displays:
+
+```text
+Manufacturing
+```
+
+If the field is empty, the page displays:
+
+```text
+-
+```
+
+This provides a cleaner Detail page when optional Customer information is missing.
+
+---
+
+# 64. Customer Detail Request Flow
+
+The complete Customer Detail process is:
+
+```text
+Customer List
+      ↓
+Click Customer
+      ↓
+/customers/2/
+      ↓
+crm/urls.py
+      ↓
+<int:pk>
+      ↓
+customer_detail(request, pk=2)
+      ↓
+get_object_or_404(Customer, pk=2)
+      ↓
+Django ORM
+      ↓
+SQLite
+      ↓
+Customer Object
+      ↓
+customer_detail.html
+      ↓
+Browser
+```
+
+Requesting a non-existing Customer, for example:
+
+```text
+/customers/99999/
+```
+
+returns:
+
+```text
+404 Not Found
+```
+
+because the view uses:
+
+```python
+get_object_or_404()
+```
+
+---
+
+# 65. Create the Edit Customer View
+
+The next step was to implement the Update part of CRUD.
+
+Instead of creating another form, the existing:
+
+```text
+CustomerForm
+```
+
+was reused.
+
+Add to:
+
+```text
+crm/views.py
+```
+
+```python
+def customer_update(request, pk):
+    customer = get_object_or_404(Customer, pk=pk)
+
+    if request.method == "POST":
+        form = CustomerForm(
+            request.POST,
+            instance=customer
+        )
+
+        if form.is_valid():
+            form.save()
+
+            return redirect(
+                "customer_detail",
+                pk=customer.pk
+            )
+
+    else:
+        form = CustomerForm(instance=customer)
+
+    context = {
+        "form": form,
+        "customer": customer,
+    }
+
+    return render(
+        request,
+        "crm/customer_form.html",
+        context
+    )
+```
+
+The most important new concept is:
+
+```python
+instance=customer
+```
+
+---
+
+# 66. Understanding `instance=customer`
+
+When creating a new Customer, the CRM uses:
+
+```python
+CustomerForm()
+```
+
+or:
+
+```python
+CustomerForm(request.POST)
+```
+
+This means:
+
+```text
+Create a new Customer
+```
+
+For editing, the CRM uses:
+
+```python
+CustomerForm(instance=customer)
+```
+
+This tells Django:
+
+```text
+Use this existing Customer
+and populate the form with its current information.
+```
+
+When processing the submitted Edit form:
+
+```python
+CustomerForm(
+    request.POST,
+    instance=customer
+)
+```
+
+tells Django:
+
+```text
+Validate the submitted information
+and update this existing Customer.
+```
+
+Without:
+
+```python
+instance=customer
+```
+
+the application could create another Customer instead of updating the existing record.
+
+---
+
+# 67. Add the Edit Customer URL
+
+The following URL was added:
+
+```python
+path(
+    "customers/<int:pk>/edit/",
+    views.customer_update,
+    name="customer_update"
+),
+```
+
+The CRM now supports:
+
+```text
+/customers/2/
+    ↓
+View Customer 2
+
+
+/customers/2/edit/
+    ↓
+Edit Customer 2
+```
+
+The Edit button uses:
+
+```django
+{% url 'customer_update' customer.pk %}
+```
+
+For Customer 2, Django generates:
+
+```text
+/customers/2/edit/
+```
+
+---
+
+# 68. Reuse the Customer Form Template
+
+The existing:
+
+```text
+customer_form.html
+```
+
+was reused for both:
+
+```text
+Add Customer
+```
+
+and:
+
+```text
+Edit Customer
+```
+
+The template can determine whether a Customer object exists:
+
+```django
+{% if customer %}
+```
+
+For editing:
+
+```text
+customer exists
+      ↓
+Edit Customer
+```
+
+For creation:
+
+```text
+customer does not exist
+      ↓
+Add Customer
+```
+
+For example:
+
+```django
+{% if customer %}
+    Edit Customer
+{% else %}
+    Add Customer
+{% endif %}
+```
+
+The same logic is used for the button:
+
+```django
+<button type="submit" class="button">
+
+    {% if customer %}
+        Update Customer
+    {% else %}
+        Save Customer
+    {% endif %}
+
+</button>
+```
+
+This allows one reusable template to support both operations:
+
+```text
+                    customer_form.html
+                           │
+               ┌───────────┴───────────┐
+               ↓                       ↓
+      customer_create()       customer_update()
+               ↓                       ↓
+         Add Customer             Edit Customer
+```
+
+This avoids duplicated HTML.
+
+---
+
+# 69. Edit Customer Database Operation
+
+The difference between Create and Update is important.
+
+## Create
+
+```python
+form = CustomerForm(request.POST)
+form.save()
+```
+
+Conceptually performs:
+
+```sql
+INSERT INTO crm_customer (...)
+VALUES (...);
+```
+
+A new database row is created.
+
+## Update
+
+```python
+form = CustomerForm(
+    request.POST,
+    instance=customer
+)
+
+form.save()
+```
+
+Conceptually performs:
+
+```sql
+UPDATE crm_customer
+SET ...
+WHERE id = 2;
+```
+
+The existing database record is modified.
+
+Therefore:
+
+```python
+instance=customer
+```
+
+is what connects the submitted form to the existing database object.
+
+---
+
+# 70. Create the Delete Customer View
+
+After Update was working, the Delete part of CRUD was implemented.
+
+Add to:
+
+```text
+crm/views.py
+```
+
+```python
+def customer_delete(request, pk):
+    customer = get_object_or_404(Customer, pk=pk)
+
+    if request.method == "POST":
+        customer.delete()
+
+        return redirect("customer_list")
+
+    context = {
+        "customer": customer,
+    }
+
+    return render(
+        request,
+        "crm/customer_confirm_delete.html",
+        context
+    )
+```
+
+The Customer is first retrieved using:
+
+```python
+get_object_or_404(Customer, pk=pk)
+```
+
+The actual deletion only occurs when:
+
+```python
+request.method == "POST"
+```
+
+and:
+
+```python
+customer.delete()
+```
+
+is executed.
+
+---
+
+# 71. Why Delete Uses POST
+
+Opening:
+
+```text
+/customers/2/delete/
+```
+
+does not immediately delete Customer 2.
+
+A GET request only displays the confirmation page.
+
+The flow is:
+
+```text
+GET /customers/2/delete/
+        ↓
+Display confirmation page
+        ↓
+No database deletion
+```
+
+Only after the user confirms deletion does the form send:
+
+```text
+POST /customers/2/delete/
+```
+
+Then Django executes:
+
+```python
+customer.delete()
+```
+
+Conceptually:
+
+```sql
+DELETE FROM crm_customer
+WHERE id = 2;
+```
+
+This design prevents a Customer from being deleted simply by visiting a URL.
+
+---
+
+# 72. Add the Delete Customer URL
+
+The following route was added:
+
+```python
+path(
+    "customers/<int:pk>/delete/",
+    views.customer_delete,
+    name="customer_delete"
+),
+```
+
+Customer routing now includes:
+
+```text
+/customers/                 Customer List
+
+/customers/add/             Add Customer
+
+/customers/1/               Customer Detail
+
+/customers/1/edit/          Edit Customer
+
+/customers/1/delete/        Delete Customer
+```
+
+All Customer-specific operations use the Customer primary key.
+
+---
+
+# 73. Add the Delete Customer Button
+
+The Customer Detail page now contains both:
+
+```text
+Edit Customer
+Delete Customer
+```
+
+The Delete link uses:
+
+```django
+<a href="{% url 'customer_delete' customer.pk %}"
+   class="delete-button">
+
+    Delete Customer
+
+</a>
+```
+
+For Customer 2:
+
+```django
+{% url 'customer_delete' customer.pk %}
+```
+
+generates:
+
+```text
+/customers/2/delete/
+```
+
+---
+
+# 74. Create the Delete Confirmation Page
+
+A new template was created:
+
+```text
+crm/templates/crm/customer_confirm_delete.html
+```
+
+The confirmation page displays the Customer name and warns the user before deleting the record.
+
+The form uses:
+
+```html
+<form method="post">
+```
+
+and:
+
+```django
+{% csrf_token %}
+```
+
+The user can choose:
+
+```text
+Yes, Delete Customer
+```
+
+or:
+
+```text
+Cancel
+```
+
+Cancel returns to:
+
+```text
+/customers/<id>/
+```
+
+without changing the database.
+
+Confirming sends a POST request and deletes the Customer.
+
+---
+
+# 75. Delete Customer Request Flow
+
+The complete deletion process is:
+
+```text
+Customer Detail
+      ↓
+Delete Customer
+      ↓
+GET /customers/2/delete/
+      ↓
+customer_delete()
+      ↓
+Confirmation Page
+      ↓
+User confirms
+      ↓
+POST /customers/2/delete/
+      ↓
+customer_delete()
+      ↓
+customer.delete()
+      ↓
+SQLite
+      ↓
+Customer removed
+      ↓
+redirect("customer_list")
+      ↓
+/customers/
+```
+
+This provides protection against accidental deletion.
+
+---
+
+# 76. Primary Keys After Deletion
+
+Database primary keys should not be treated as continuous Customer numbers.
+
+For example:
+
+```text
+ID 1    ABC Manufacturing
+ID 2    Kobe Engineering
+ID 3    Delete Test Customer
+```
+
+After deleting Customer 3:
+
+```text
+ID 1    ABC Manufacturing
+ID 2    Kobe Engineering
+```
+
+the next Customer may receive:
+
+```text
+ID 4    New Customer
+```
+
+instead of reusing:
+
+```text
+ID 3
+```
+
+This is normal.
+
+A primary key exists to uniquely identify a database record.
+
+It does not need to remain sequential without gaps.
+
+---
+
+# 77. Current Customer URL Architecture
+
+The Customer Management module now has:
+
+```text
+                         Customers
+                             │
+              ┌──────────────┼──────────────┐
+              │              │              │
+             List           Create         Detail
+              │              │              │
+              │              │        ┌─────┴─────┐
+              │              │        │           │
+              │              │       Edit       Delete
+              │              │        │           │
+              ↓              ↓        ↓           ↓
+       /customers/   /customers/add/  /edit/    /delete/
+```
+
+More specifically:
+
+```text
+/                           CRM Dashboard
+
+/customers/                 Customer List
+
+/customers/add/             Create Customer
+
+/customers/<pk>/            Customer Detail
+
+/customers/<pk>/edit/       Update Customer
+
+/customers/<pk>/delete/     Delete Customer
+
+/admin/                     Django Admin
+```
+
+---
+
+# 78. Current Customer Request Architecture
+
+The Customer Management data flow is now:
+
+```text
+                         Browser
+                            │
+                            ↓
+                       crm/urls.py
+                            │
+              ┌─────────────┼─────────────┐
+              ↓             ↓             ↓
+        customer_list   customer_create   customer_detail
+              │             │             │
+              │             │        ┌────┴────┐
+              │             │        ↓         ↓
+              │             │     update     delete
+              │             │        │         │
+              └─────────────┼────────┴─────────┘
+                            ↓
+                       Django ORM
+                            ↓
+                         Customer
+                            ↓
+                         SQLite
+```
+
+The views communicate with the database through Django's ORM rather than manually writing SQL.
+
+---
+
+# 79. Customer CRUD Completed
+
+The basic Customer CRUD cycle is now complete.
+
+CRUD means:
+
+```text
+C = Create
+R = Read
+U = Update
+D = Delete
+```
+
+Current implementation:
+
+```text
+Create    ✅
+│
+└── /customers/add/
+
+
+Read      ✅
+│
+├── /customers/
+│
+└── /customers/<pk>/
+
+
+Update    ✅
+│
+└── /customers/<pk>/edit/
+
+
+Delete    ✅
+│
+└── /customers/<pk>/delete/
+```
+
+The CRM can now:
+
+- Create Customers
+- Display all Customers
+- Display an individual Customer
+- Edit Customer information
+- Delete Customers safely using a confirmation page
+
+All of these operations are available through the custom CRM interface instead of Django Admin.
+
+---
+
+# 80. Updated Project Structure
+
+The project now has approximately the following structure:
+
+```text
+crm-system/
+│
+├── .venv/
+│
+├── crm/
+│   │
+│   ├── migrations/
+│   │   ├── __init__.py
+│   │   └── 0001_initial.py
+│   │
+│   ├── templates/
+│   │   └── crm/
+│   │       ├── base.html
+│   │       ├── dashboard.html
+│   │       ├── customer_list.html
+│   │       ├── customer_form.html
+│   │       ├── customer_detail.html
+│   │       └── customer_confirm_delete.html
+│   │
+│   ├── __init__.py
+│   ├── admin.py
+│   ├── apps.py
+│   ├── forms.py
+│   ├── models.py
+│   ├── tests.py
+│   ├── urls.py
+│   └── views.py
+│
+├── crm_project/
+│   ├── __init__.py
+│   ├── asgi.py
+│   ├── settings.py
+│   ├── urls.py
+│   └── wsgi.py
+│
+├── db.sqlite3
+├── manage.py
+└── README.md
+```
+
+New Customer templates added during Day 3:
+
+```text
+customer_detail.html
+customer_confirm_delete.html
+```
+
+The existing:
+
+```text
+customer_form.html
+```
+
+is now reused for both Create and Update operations.
+
+---
+
+# 81. Updated Development Roadmap
+
+## Completed
+
+- [x] Python virtual environment
+- [x] Django installation
+- [x] Django CRM project
+- [x] SQLite database
+- [x] CRM application
+- [x] Customer model
+- [x] Database migrations
+- [x] Django Admin
+- [x] CRM Dashboard
+- [x] Dynamic Customer count
+- [x] Recent Customers
+- [x] Shared base template
+- [x] Customer List
+- [x] Add Customer
+- [x] Django `ModelForm`
+- [x] Form validation
+- [x] CSRF protection
+- [x] Customer Detail
+- [x] Primary key URL routing
+- [x] `get_object_or_404`
+- [x] Edit Customer
+- [x] Reuse Customer form for Create and Update
+- [x] Delete Customer
+- [x] Delete confirmation page
+- [x] Complete Customer CRUD
+- [x] Migrate development environment from Python 3.11 to Python 3.13
+
+## Next
+
+- [ ] Customer Search
+- [ ] Customer List pagination
+- [ ] Contact model
+- [ ] Link Contacts to Customers
+- [ ] Contact Management CRUD
+- [ ] Opportunity model
+- [ ] Opportunity Management
+- [ ] Sales Pipeline
+- [ ] Activities / Follow-ups
+- [ ] User Authentication
+- [ ] User Permissions
+- [ ] Reports and Charts
+- [ ] PostgreSQL migration
+- [ ] REST API
+- [ ] AI-assisted CRM functions
+
+---
+
+# Day 3 Project Status
+
+**Customer CRUD completed successfully**
+
+The CRM now provides a complete basic Customer Management workflow:
+
+```text
+                    CUSTOMER MANAGEMENT
+
+                           List
+                            │
+              ┌─────────────┼─────────────┐
+              ↓             ↓             ↓
+            Create        Detail         Search
+              ✅            ✅              ⬜
+                            │
+                     ┌──────┴──────┐
+                     ↓             ↓
+                    Edit         Delete
+                     ✅             ✅
+```
+
+Current CRUD status:
+
+```text
+Create    ██████████  Complete
+Read      ██████████  Complete
+Update    ██████████  Complete
+Delete    ██████████  Complete
+```
+
+The Customer module now supports:
+
+```text
+Customer List
+     ↓
+Add Customer
+     ↓
+View Customer
+     ↓
+Edit Customer
+     ↓
+Delete Customer
+```
+
+The next development milestone is:
+
+**Customer Search and Pagination**
+
+After that, development can move to the second major CRM entity:
+
+**Contact Management**, where Contacts will be linked to Customers through a Django database relationship.
 
 
