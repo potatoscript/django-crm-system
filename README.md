@@ -19,7 +19,7 @@ The system will eventually provide:
 - AI-assisted CRM features
 
 ---
-
+<a id="table-of-contents"></a>
 # Table of Contents
 
 ## Day 1 — CRM Foundation
@@ -136,6 +136,8 @@ Project directory:
 D:\MyProjects\crm-system
 ```
 
+[⬆ Back to Table of Contents](#table-of-contents)
+
 ---
 
 # 2. Create the Project Directory
@@ -165,6 +167,8 @@ Python 3.11.1
 Different Django versions support different Python versions.
 
 Because this project currently uses Python 3.11, Django 5.2 LTS is used rather than Django 6.
+
+[⬆ Back to Table of Contents](#table-of-contents)
 
 ---
 
@@ -201,6 +205,8 @@ After creation, the project contains:
 crm-system/
 └── .venv/
 ```
+
+[⬆ Back to Table of Contents](#table-of-contents)
 
 ---
 
@@ -260,6 +266,8 @@ False
 
 `False` confirms that the directory no longer exists.
 
+[⬆ Back to Table of Contents](#table-of-contents)
+
 ---
 
 # 5. Check pip
@@ -288,6 +296,8 @@ python -m ensurepip --version
 
 `ensurepip` is the Python module used to bootstrap/install `pip`, including when Python creates a virtual environment.
 
+[⬆ Back to Table of Contents](#table-of-contents)
+
 ---
 
 # 6. Recreate the Virtual Environment
@@ -311,6 +321,8 @@ After activation, the PowerShell prompt changes to:
 ```
 
 The `(.venv)` prefix confirms that the virtual environment is active.
+
+[⬆ Back to Table of Contents](#table-of-contents)
 
 ---
 
@@ -368,6 +380,8 @@ python -m pip install --upgrade pip
 
 This updates the package installer used by the project.
 
+[⬆ Back to Table of Contents](#table-of-contents)
+
 ---
 
 # 9. Install Django
@@ -397,6 +411,8 @@ Check the installed Django version:
 ```powershell
 python -m django --version
 ```
+
+[⬆ Back to Table of Contents](#table-of-contents)
 
 ---
 
@@ -473,6 +489,8 @@ This contains the main Django project configuration, including:
 
 This defines how browser URLs are routed to different parts of the Django application.
 
+[⬆ Back to Table of Contents](#table-of-contents)
+
 ---
 
 # 11. Create the Initial Django Database
@@ -494,6 +512,8 @@ db.sqlite3
 ```
 
 SQLite is being used during the initial development stage because it requires very little configuration.
+
+[⬆ Back to Table of Contents](#table-of-contents)
 
 ---
 
@@ -526,6 +546,8 @@ This confirmed that:
 - Django was installed
 - The Django project configuration was valid
 - The development web server was running
+
+[⬆ Back to Table of Contents](#table-of-contents)
 
 ---
 
@@ -577,6 +599,8 @@ crm
 CRM business functionality
 ```
 
+[⬆ Back to Table of Contents](#table-of-contents)
+
 ---
 
 # 14. Register the CRM Application
@@ -605,6 +629,8 @@ INSTALLED_APPS = [
 ```
 
 This tells Django that the CRM application belongs to the project.
+
+[⬆ Back to Table of Contents](#table-of-contents)
 
 ---
 
@@ -753,6 +779,8 @@ Django can display:
 ABC Manufacturing
 ```
 
+[⬆ Back to Table of Contents](#table-of-contents)
+
 ---
 
 # 16. Create the Customer Database Table
@@ -805,6 +833,8 @@ python manage.py makemigrations
 python manage.py migrate
 ```
 
+[⬆ Back to Table of Contents](#table-of-contents)
+
 ---
 
 # 17. Register Customer in Django Admin
@@ -848,6 +878,8 @@ class CustomerAdmin(admin.ModelAdmin):
 `list_display` determines which fields appear in the customer list.
 
 `search_fields` enables searching those fields from the Django Admin interface.
+
+[⬆ Back to Table of Contents](#table-of-contents)
 
 ---
 
@@ -909,6 +941,8 @@ Country: Japan
 ```
 
 This confirmed that the CRM application could successfully create and retrieve customer information from the database.
+
+[⬆ Back to Table of Contents](#table-of-contents)
 
 ---
 
@@ -988,6 +1022,8 @@ return render(request, "crm/dashboard.html", context)
 
 renders the dashboard HTML and supplies it with the CRM data.
 
+[⬆ Back to Table of Contents](#table-of-contents)
+
 ---
 
 # 20. Create CRM URL Routing
@@ -1053,6 +1089,8 @@ The Django Admin remains available separately at:
 /admin/
 ```
 
+[⬆ Back to Table of Contents](#table-of-contents)
+
 ---
 
 # 21. Create the Dashboard Template
@@ -1115,6 +1153,8 @@ dashboard.html
 Browser
 ```
 
+[⬆ Back to Table of Contents](#table-of-contents)
+
 ---
 
 # 22. Current Dashboard
@@ -1173,6 +1213,8 @@ Django Template
 CRM Dashboard
 ```
 
+[⬆ Back to Table of Contents](#table-of-contents)
+
 ---
 
 # 23. Current Project Structure
@@ -1212,6 +1254,8 @@ crm-system/
 ├── manage.py
 └── README.md
 ```
+
+[⬆ Back to Table of Contents](#table-of-contents)
 
 ---
 
@@ -1253,6 +1297,8 @@ crm-system/
 - [ ] REST API
 - [ ] AI-assisted CRM functions
 
+[⬆ Back to Table of Contents](#table-of-contents)
+
 ---
 
 # 25. Planned CRM Architecture
@@ -1287,6 +1333,8 @@ crm-system/
         AI Integration
 ```
 
+[⬆ Back to Table of Contents](#table-of-contents)
+
 ---
 
 # 26. Future AI Features
@@ -1310,6 +1358,8 @@ that have had no activity during the last 30 days.
 ```
 
 The objective is to first build a reliable CRM data foundation and then add AI functionality on top of structured CRM data.
+
+[⬆ Back to Table of Contents](#table-of-contents)
 
 ---
 
@@ -1357,6 +1407,8 @@ The project currently has a working Django backend, SQLite database, Customer mo
 Next development milestone:
 
 **Customer Management — List, Create, View, Edit, Delete and Search**
+
+[⬆ Back to Table of Contents](#table-of-contents)
 
 ---
 # 28. Customer List Page
@@ -1430,6 +1482,8 @@ The template can then access the customers using:
 {% for customer in customers %}
 ```
 
+[⬆ Back to Table of Contents](#table-of-contents)
+
 ---
 
 # 29. Add the Customer List URL
@@ -1485,6 +1539,8 @@ Customer.objects.order_by("name")
 customer_list.html
 ```
 
+[⬆ Back to Table of Contents](#table-of-contents)
+
 ---
 
 # 30. Create a Shared Base Template
@@ -1535,6 +1591,8 @@ The template architecture becomes:
 - Table styles
 
 Individual pages only need to provide their own content.
+
+[⬆ Back to Table of Contents](#table-of-contents)
 
 ---
 
@@ -1596,6 +1654,8 @@ This prevents duplicated HTML and makes the CRM interface easier to maintain.
 
 For example, changing the sidebar in `base.html` automatically changes it for every page that extends `base.html`.
 
+[⬆ Back to Table of Contents](#table-of-contents)
+
 ---
 
 # 32. Update Dashboard to Use `base.html`
@@ -1637,6 +1697,8 @@ from the existing dashboard view.
 Therefore the database logic did not need to change.
 
 Only the presentation structure was improved.
+
+[⬆ Back to Table of Contents](#table-of-contents)
 
 ---
 
@@ -1696,6 +1758,8 @@ customer_list.html
 Customer Table
 ```
 
+[⬆ Back to Table of Contents](#table-of-contents)
+
 ---
 
 # 34. Connect the Customers Sidebar Link
@@ -1745,6 +1809,8 @@ Django therefore generates:
 ```
 
 Using named URLs is preferable to hard-coding URLs because the actual path can later be changed without rewriting every template.
+
+[⬆ Back to Table of Contents](#table-of-contents)
 
 ---
 
@@ -1836,6 +1902,8 @@ updated_at
 
 because Django automatically manages them.
 
+[⬆ Back to Table of Contents](#table-of-contents)
+
 ---
 
 # 36. Create the Add Customer View
@@ -1890,6 +1958,8 @@ This view handles two different types of HTTP requests:
 GET
 POST
 ```
+
+[⬆ Back to Table of Contents](#table-of-contents)
 
 ---
 
@@ -2004,6 +2074,8 @@ Django ORM
 SQLite
 ```
 
+[⬆ Back to Table of Contents](#table-of-contents)
+
 ---
 
 # 39. Redirect After Saving
@@ -2033,6 +2105,8 @@ redirect()
 ```
 
 This prevents the user from remaining on the submitted form after the record has been created.
+
+[⬆ Back to Table of Contents](#table-of-contents)
 
 ---
 
@@ -2066,6 +2140,8 @@ The URL configuration now contains:
 /admin/                 Django Admin
 ```
 
+[⬆ Back to Table of Contents](#table-of-contents)
+
 ---
 
 # 41. Connect the Add Customer Button
@@ -2097,6 +2173,8 @@ and generates:
 ```text
 /customers/add/
 ```
+
+[⬆ Back to Table of Contents](#table-of-contents)
 
 ---
 
@@ -2165,6 +2243,8 @@ the button correctly opened:
 /customers/add/
 ```
 
+[⬆ Back to Table of Contents](#table-of-contents)
+
 ---
 
 # 43. Create the Customer Form Template
@@ -2211,6 +2291,8 @@ The Save button uses:
 
 When clicked, the browser submits the form as a POST request.
 
+[⬆ Back to Table of Contents](#table-of-contents)
+
 ---
 
 # 44. CSRF Protection
@@ -2245,6 +2327,8 @@ The CSRF token helps Django verify that the request came from a valid form gener
 
 Without the token, Django will normally reject the POST request.
 
+[⬆ Back to Table of Contents](#table-of-contents)
+
 ---
 
 # 45. Add Form Styling
@@ -2278,6 +2362,8 @@ Edit Opportunity
 ```
 
 This is another advantage of having a shared base template.
+
+[⬆ Back to Table of Contents](#table-of-contents)
 
 ---
 
@@ -2333,6 +2419,8 @@ the following works:
 return redirect("customer_list")
 ```
 
+[⬆ Back to Table of Contents](#table-of-contents)
+
 ---
 
 # 47. Important Observation About `form.save()`
@@ -2364,6 +2452,8 @@ Otherwise a duplicate Customer could have been created.
 This is an important debugging lesson:
 
 > A web request can fail after some database operations have already completed.
+
+[⬆ Back to Table of Contents](#table-of-contents)
 
 ---
 
@@ -2405,6 +2495,8 @@ Customers
 ```
 
 No dashboard source code needs to be changed.
+
+[⬆ Back to Table of Contents](#table-of-contents)
 
 ---
 
@@ -2453,6 +2545,8 @@ The next stages will implement:
 
 /customers/<id>/delete/
 ```
+
+[⬆ Back to Table of Contents](#table-of-contents)
 
 ---
 
@@ -2507,6 +2601,8 @@ base.html
 customer_list.html
 customer_form.html
 ```
+
+[⬆ Back to Table of Contents](#table-of-contents)
 
 ---
 
@@ -2621,6 +2717,8 @@ The objectives for Day 3 were:
 
 During the development session, the Python environment was also migrated from Python 3.11 to Python 3.13.
 
+[⬆ Back to Table of Contents](#table-of-contents)
+
 ---
 
 # 52. Python 3.11 Virtual Environment Problem
@@ -2665,6 +2763,8 @@ After Python 3.11 was removed, the virtual environment could no longer find its 
 The CRM source code itself was not damaged.
 
 The problem was only the virtual environment.
+
+[⬆ Back to Table of Contents](#table-of-contents)
 
 ---
 
@@ -2754,6 +2854,8 @@ Python 3.13
       CRM Project
 ```
 
+[⬆ Back to Table of Contents](#table-of-contents)
+
 ---
 
 # 54. Reinstall Django in the New Virtual Environment
@@ -2795,6 +2897,8 @@ There was no need to recreate:
 
 Those files exist outside `.venv`.
 
+[⬆ Back to Table of Contents](#table-of-contents)
+
 ---
 
 # 55. Configure VS Code to Use the New Virtual Environment
@@ -2822,6 +2926,8 @@ Then select:
 The selected interpreter should correspond to Python 3.13.
 
 This ensures that VS Code, the terminal, Python extensions, and Django development use the project's virtual environment rather than an unrelated global Python installation.
+
+[⬆ Back to Table of Contents](#table-of-contents)
 
 ---
 
@@ -2882,6 +2988,8 @@ Contains the actual database records
 
 The current Customer data is stored in the SQLite database.
 
+[⬆ Back to Table of Contents](#table-of-contents)
+
 ---
 
 # 57. Customer Detail Page
@@ -2915,6 +3023,8 @@ Therefore:
 ```
 
 displays Customer 2.
+
+[⬆ Back to Table of Contents](#table-of-contents)
 
 ---
 
@@ -2957,6 +3067,8 @@ Primary Key
 
 The primary key is used in the Customer Detail, Edit, and Delete URLs.
 
+[⬆ Back to Table of Contents](#table-of-contents)
+
 ---
 
 # 59. Import `get_object_or_404`
@@ -2995,6 +3107,8 @@ If it does not exist, Django returns:
 ```
 
 instead of allowing an unhandled object lookup error.
+
+[⬆ Back to Table of Contents](#table-of-contents)
 
 ---
 
@@ -3058,6 +3172,8 @@ The template can then access:
 {{ customer.phone }}
 {{ customer.country }}
 ```
+
+[⬆ Back to Table of Contents](#table-of-contents)
 
 ---
 
@@ -3123,6 +3239,8 @@ get_object_or_404()
 Customer ID 2
 ```
 
+[⬆ Back to Table of Contents](#table-of-contents)
+
 ---
 
 # 62. Make Customer Names Clickable
@@ -3168,6 +3286,8 @@ This is different from a URL such as:
 ```
 
 because `customer_create` does not require a database ID.
+
+[⬆ Back to Table of Contents](#table-of-contents)
 
 ---
 
@@ -3229,6 +3349,8 @@ If the field is empty, the page displays:
 
 This provides a cleaner Detail page when optional Customer information is missing.
 
+[⬆ Back to Table of Contents](#table-of-contents)
+
 ---
 
 # 64. Customer Detail Request Flow
@@ -3278,6 +3400,8 @@ because the view uses:
 ```python
 get_object_or_404()
 ```
+
+[⬆ Back to Table of Contents](#table-of-contents)
 
 ---
 
@@ -3338,6 +3462,8 @@ The most important new concept is:
 instance=customer
 ```
 
+[⬆ Back to Table of Contents](#table-of-contents)
+
 ---
 
 # 66. Understanding `instance=customer`
@@ -3397,6 +3523,8 @@ instance=customer
 
 the application could create another Customer instead of updating the existing record.
 
+[⬆ Back to Table of Contents](#table-of-contents)
+
 ---
 
 # 67. Add the Edit Customer URL
@@ -3435,6 +3563,8 @@ For Customer 2, Django generates:
 ```text
 /customers/2/edit/
 ```
+
+[⬆ Back to Table of Contents](#table-of-contents)
 
 ---
 
@@ -3518,6 +3648,8 @@ This allows one reusable template to support both operations:
 
 This avoids duplicated HTML.
 
+[⬆ Back to Table of Contents](#table-of-contents)
+
 ---
 
 # 69. Edit Customer Database Operation
@@ -3568,6 +3700,8 @@ instance=customer
 ```
 
 is what connects the submitted form to the existing database object.
+
+[⬆ Back to Table of Contents](#table-of-contents)
 
 ---
 
@@ -3621,6 +3755,8 @@ customer.delete()
 
 is executed.
 
+[⬆ Back to Table of Contents](#table-of-contents)
+
 ---
 
 # 71. Why Delete Uses POST
@@ -3666,6 +3802,8 @@ WHERE id = 2;
 
 This design prevents a Customer from being deleted simply by visiting a URL.
 
+[⬆ Back to Table of Contents](#table-of-contents)
+
 ---
 
 # 72. Add the Delete Customer URL
@@ -3695,6 +3833,8 @@ Customer routing now includes:
 ```
 
 All Customer-specific operations use the Customer primary key.
+
+[⬆ Back to Table of Contents](#table-of-contents)
 
 ---
 
@@ -3729,6 +3869,8 @@ generates:
 ```text
 /customers/2/delete/
 ```
+
+[⬆ Back to Table of Contents](#table-of-contents)
 
 ---
 
@@ -3776,6 +3918,8 @@ without changing the database.
 
 Confirming sends a POST request and deletes the Customer.
 
+[⬆ Back to Table of Contents](#table-of-contents)
+
 ---
 
 # 75. Delete Customer Request Flow
@@ -3811,6 +3955,8 @@ redirect("customer_list")
 ```
 
 This provides protection against accidental deletion.
+
+[⬆ Back to Table of Contents](#table-of-contents)
 
 ---
 
@@ -3851,6 +3997,8 @@ A primary key exists to uniquely identify a database record.
 
 It does not need to remain sequential without gaps.
 
+[⬆ Back to Table of Contents](#table-of-contents)
+
 ---
 
 # 77. Current Customer URL Architecture
@@ -3890,6 +4038,8 @@ More specifically:
 /admin/                     Django Admin
 ```
 
+[⬆ Back to Table of Contents](#table-of-contents)
+
 ---
 
 # 78. Current Customer Request Architecture
@@ -3920,6 +4070,8 @@ The Customer Management data flow is now:
 ```
 
 The views communicate with the database through Django's ORM rather than manually writing SQL.
+
+[⬆ Back to Table of Contents](#table-of-contents)
 
 ---
 
@@ -3970,6 +4122,8 @@ The CRM can now:
 - Delete Customers safely using a confirmation page
 
 All of these operations are available through the custom CRM interface instead of Django Admin.
+
+[⬆ Back to Table of Contents](#table-of-contents)
 
 ---
 
@@ -4032,6 +4186,8 @@ customer_form.html
 ```
 
 is now reused for both Create and Update operations.
+
+[⬆ Back to Table of Contents](#table-of-contents)
 
 ---
 
@@ -4139,4 +4295,6 @@ After that, development can move to the second major CRM entity:
 
 **Contact Management**, where Contacts will be linked to Customers through a Django database relationship.
 
+[⬆ Back to Table of Contents](#table-of-contents)
 
+---
