@@ -2,7 +2,13 @@
 
 
 {% block title %}
-Add Customer
+
+    {% if customer %}
+        Edit {{ customer.name }}
+    {% else %}
+        Add Customer
+    {% endif %}
+
 {% endblock %}
 
 
@@ -13,10 +19,24 @@ Add Customer
 
     <div>
 
-        <h1>Add Customer</h1>
+        <h1>
+
+            {% if customer %}
+                Edit Customer
+            {% else %}
+                Add Customer
+            {% endif %}
+
+        </h1>
 
         <p>
-            Create a new customer account.
+
+            {% if customer %}
+                Update the customer information.
+            {% else %}
+                Create a new customer account.
+            {% endif %}
+
         </p>
 
     </div>
@@ -126,16 +146,35 @@ Add Customer
         <div class="form-actions">
 
             <button type="submit" class="button">
-                Save Customer
+
+                {% if customer %}
+                    Update Customer
+                {% else %}
+                    Save Customer
+                {% endif %}
+
             </button>
 
 
-            <a href="{% url 'customer_list' %}"
-               class="cancel-button">
+            {% if customer %}
 
-                Cancel
+                <a href="{% url 'customer_detail' customer.pk %}"
+                class="cancel-button">
 
-            </a>
+                    Cancel
+
+                </a>
+
+            {% else %}
+
+                <a href="{% url 'customer_list' %}"
+                class="cancel-button">
+
+                    Cancel
+
+                </a>
+
+            {% endif %}
 
         </div>
 

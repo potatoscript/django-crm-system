@@ -1,0 +1,190 @@
+{% extends "crm/base.html" %}
+
+
+{% block title %}
+{{ customer.name }}
+{% endblock %}
+
+
+{% block content %}
+
+
+<div class="page-header">
+
+    <div>
+
+        <h1>
+            {{ customer.name }}
+        </h1>
+
+        <p>
+            Customer Details
+        </p>
+
+    </div>
+
+
+    <div>
+
+        <div>
+
+            <a href="{% url 'customer_update' customer.pk %}"
+            class="button">
+
+                Edit Customer
+
+            </a>
+
+
+            <a href="{% url 'customer_delete' customer.pk %}"
+            class="delete-button">
+
+                Delete Customer
+
+            </a>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<div class="detail-container">
+
+
+    <div class="detail-row">
+
+        <div class="detail-label">
+            Industry
+        </div>
+
+        <div class="detail-value">
+            {{ customer.industry|default:"-" }}
+        </div>
+
+    </div>
+
+
+    <div class="detail-row">
+
+        <div class="detail-label">
+            Country
+        </div>
+
+        <div class="detail-value">
+            {{ customer.country|default:"-" }}
+        </div>
+
+    </div>
+
+
+    <div class="detail-row">
+
+        <div class="detail-label">
+            Email
+        </div>
+
+        <div class="detail-value">
+            {{ customer.email|default:"-" }}
+        </div>
+
+    </div>
+
+
+    <div class="detail-row">
+
+        <div class="detail-label">
+            Phone
+        </div>
+
+        <div class="detail-value">
+            {{ customer.phone|default:"-" }}
+        </div>
+
+    </div>
+
+
+    <div class="detail-row">
+
+        <div class="detail-label">
+            Website
+        </div>
+
+        <div class="detail-value">
+
+            {% if customer.website %}
+
+                <a href="{{ customer.website }}"
+                   target="_blank">
+
+                    {{ customer.website }}
+
+                </a>
+
+            {% else %}
+
+                -
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+
+    <div class="detail-row">
+
+        <div class="detail-label">
+            Address
+        </div>
+
+        <div class="detail-value">
+            {{ customer.address|default:"-" }}
+        </div>
+
+    </div>
+
+
+    <div class="detail-row">
+
+        <div class="detail-label">
+            Created
+        </div>
+
+        <div class="detail-value">
+            {{ customer.created_at }}
+        </div>
+
+    </div>
+
+
+    <div class="detail-row">
+
+        <div class="detail-label">
+            Last Updated
+        </div>
+
+        <div class="detail-value">
+            {{ customer.updated_at }}
+        </div>
+
+    </div>
+
+
+</div>
+
+
+<div class="form-actions">
+
+    <a href="{% url 'customer_list' %}"
+       class="cancel-button">
+
+        ← Back to Customers
+
+    </a>
+
+</div>
+
+
+{% endblock %}

@@ -61,7 +61,9 @@ Customers
         <tr>
 
             <td>
-                {{ customer.name }}
+                <a href="{% url 'customer_detail' customer.pk %}">
+                    {{ customer.name }}
+                </a>      
             </td>
 
             <td>
