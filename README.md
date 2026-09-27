@@ -112,6 +112,12 @@ The system will eventually provide:
 80. [Updated Project Structure](#80-updated-project-structure)
 81. [Updated Development Roadmap](#81-updated-development-roadmap)
 
+
+## Day 4 — Customer Search and Pagination
+
+82. [Customer Search](#82-customer-search)  
+83. [Customer Pagination](#83-customer-pagination)
+
 ---
 
 
@@ -4298,3 +4304,687 @@ After that, development can move to the second major CRM entity:
 [⬆ Back to Table of Contents](#table-of-contents)
 
 ---
+
+
+# Day 4 — Customer Search and Pagination
+
+Day 4 improves the Customer Management module with two features:
+
+- Customer Search
+- Customer Pagination
+
+The Customer CRUD functions were completed during Day 3:
+
+```text
+Create    ✅
+Read      ✅
+Update    ✅
+Delete    ✅
+```
+
+Day 4 extends the Customer List so that it can handle a larger number of Customer records more effectively.
+
+---
+
+# 82. Customer Search
+
+The Customer List page was updated with a search function.
+
+The search can match Customer information from the following fields:
+
+```text
+Name
+Industry
+Email
+Phone
+Country
+```
+
+For example, searching:
+
+```text
+Kobe
+```
+
+can find a Customer whose name contains:
+
+```text
+Kobe Engineering
+```
+
+Searching:
+
+```text
+Manufacturing
+```
+
+can find Customers whose Industry contains:
+
+```text
+Manufacturing
+```
+
+Searching:
+
+```text
+Japan
+```
+
+can find Customers whose Country contains:
+
+```text
+Japan
+```
+
+## Django `Q` Objects
+
+The following import was added to:
+
+```text
+crm/views.py
+```
+
+```python
+from django.db.models import Q
+```
+
+Django `Q` objects allow multiple search conditions to be combined.
+
+The CRM search requires:
+
+```text
+Name contains query
+        OR
+Industry contains query
+        OR
+Email contains query
+        OR
+Phone contains query
+        OR
+Country contains query
+```
+
+The Customer List view was updated with:
+
+```python
+def customer_list(request):
+    query = request.GET.get("q", "")
+
+    customers = Customer.objects.all()
+
+    if query:
+        customers = customers.filter(
+            Q(name__icontains=query)
+            | Q(industry__icontains=query)
+            | Q(email__icontains=query)
+            | Q(phone__icontains=query)
+            | Q(country__icontains=query)
+        )
+
+    customers = customers.order_by("name")
+
+    context = {
+        "customers": customers,
+        "query": query,
+    }
+
+    return render(
+        request,
+        "crm/customer_list.html",
+        context
+    )
+```
+
+The line:
+
+```python
+query = request.GET.get("q", "")
+```
+
+reads the search value from the browser URL.
+
+For example:
+
+```text
+/customers/?q=Kobe
+```
+
+contains:
+
+```text
+q = Kobe
+```
+
+The search process is:
+
+```text
+Search Box
+     ↓
+Kobe
+     ↓
+GET Request
+     ↓
+/customers/?q=Kobe
+     ↓
+request.GET.get("q", "")
+     ↓
+query = "Kobe"
+```
+
+## `icontains`
+
+A search condition such as:
+
+```python
+Q(name__icontains=query)
+```
+
+means:
+
+```text
+name
+ ↓
+Customer model field
+
+icontains
+ ↓
+Case-insensitive "contains"
+
+query
+ ↓
+Search text
+```
+
+Therefore a search for:
+
+```text
+kobe
+```
+
+can match:
+
+```text
+Kobe Engineering
+KOBE INDUSTRIES
+ABC Kobe Manufacturing
+```
+
+The `|` operator means:
+
+```text
+OR
+```
+
+Therefore:
+
+```python
+Q(name__icontains=query)
+| Q(industry__icontains=query)
+| Q(email__icontains=query)
+| Q(phone__icontains=query)
+| Q(country__icontains=query)
+```
+
+searches multiple Customer fields.
+
+## Search Form
+
+The following form was added to:
+
+```text
+crm/templates/crm/customer_list.html
+```
+
+```django
+<form method="get"
+      action="{% url 'customer_list' %}"
+      class="search-form">
+
+    <input
+        type="text"
+        name="q"
+        value="{{ query }}"
+        placeholder="Search customers..."
+        class="search-input"
+    >
+
+    <button type="submit"
+            class="button">
+        Search
+    </button>
+
+    {% if query %}
+
+        <a href="{% url 'customer_list' %}"
+           class="cancel-button">
+            Clear
+        </a>
+
+    {% endif %}
+
+</form>
+```
+
+The important connection is:
+
+```text
+HTML
+name="q"
+     ↓
+Browser URL
+?q=Japan
+     ↓
+Django
+request.GET.get("q", "")
+     ↓
+query = "Japan"
+```
+
+Search uses a GET request because it retrieves information without modifying the database.
+
+```text
+Search Customer    → GET
+
+Add Customer       → POST
+Edit Customer      → POST
+Delete Customer    → POST
+```
+
+The search text is preserved using:
+
+```django
+value="{{ query }}"
+```
+
+The Clear button returns to:
+
+```text
+/customers/
+```
+
+and removes the search filter.
+
+If no Customers match the search, Django's:
+
+```django
+{% empty %}
+```
+
+can display:
+
+```text
+No customers found.
+```
+
+The completed Search flow is:
+
+```text
+Customer List
+      ↓
+Search Box
+      ↓
+GET ?q=...
+      ↓
+customer_list()
+      ↓
+Q Objects
+      ↓
+Django ORM
+      ↓
+SQLite
+      ↓
+Matching Customers
+      ↓
+Customer List Template
+```
+
+[⬆ Back to Table of Contents](#table-of-contents)
+
+---
+
+# 83. Customer Pagination
+
+Pagination was added so the CRM does not need to display every Customer on one page.
+
+During development, the Customer List is configured to display:
+
+```text
+5 Customers per page
+```
+
+For example, 12 Customers are divided into:
+
+```text
+Page 1 → 5 Customers
+Page 2 → 5 Customers
+Page 3 → 2 Customers
+```
+
+## Django `Paginator`
+
+The following import was added to:
+
+```text
+crm/views.py
+```
+
+```python
+from django.core.paginator import Paginator
+```
+
+The final `customer_list()` view combines Search and Pagination:
+
+```python
+def customer_list(request):
+    query = request.GET.get("q", "")
+
+    customers = Customer.objects.all()
+
+    if query:
+        customers = customers.filter(
+            Q(name__icontains=query)
+            | Q(industry__icontains=query)
+            | Q(email__icontains=query)
+            | Q(phone__icontains=query)
+            | Q(country__icontains=query)
+        )
+
+    customers = customers.order_by("name")
+
+    paginator = Paginator(customers, 5)
+
+    page_number = request.GET.get("page")
+
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        "customers": page_obj,
+        "page_obj": page_obj,
+        "query": query,
+    }
+
+    return render(
+        request,
+        "crm/customer_list.html",
+        context
+    )
+```
+
+This line:
+
+```python
+paginator = Paginator(customers, 5)
+```
+
+means:
+
+```text
+Customer QuerySet
+       ↓
+Paginator
+       ↓
+Maximum 5 Customers per page
+```
+
+The current page number is read using:
+
+```python
+page_number = request.GET.get("page")
+```
+
+For:
+
+```text
+/customers/?page=2
+```
+
+Django receives:
+
+```text
+page = 2
+```
+
+Then:
+
+```python
+page_obj = paginator.get_page(page_number)
+```
+
+retrieves the appropriate Customer records for Page 2.
+
+## Pagination Controls
+
+The following controls were added underneath the Customer table:
+
+```django
+{% if page_obj.paginator.num_pages > 1 %}
+
+    <div class="pagination">
+
+        {% if page_obj.has_previous %}
+
+            <a href="?q={{ query }}&page={{ page_obj.previous_page_number }}">
+                ← Previous
+            </a>
+
+        {% endif %}
+
+        <span class="page-info">
+            Page {{ page_obj.number }}
+            of
+            {{ page_obj.paginator.num_pages }}
+        </span>
+
+        {% if page_obj.has_next %}
+
+            <a href="?q={{ query }}&page={{ page_obj.next_page_number }}">
+                Next →
+            </a>
+
+        {% endif %}
+
+    </div>
+
+{% endif %}
+```
+
+Django automatically provides:
+
+```text
+page_obj.has_previous
+page_obj.previous_page_number
+
+page_obj.has_next
+page_obj.next_page_number
+
+page_obj.number
+page_obj.paginator.num_pages
+```
+
+For three pages:
+
+```text
+Page 1
+
+Page 1 of 3          Next →
+
+
+Page 2
+
+← Previous     Page 2 of 3     Next →
+
+
+Page 3
+
+← Previous     Page 3 of 3
+```
+
+## Search and Pagination Together
+
+Search and Pagination were designed to work together.
+
+For example:
+
+```text
+/customers/?q=Japan&page=1
+```
+
+means:
+
+```text
+Search = Japan
+Page   = 1
+```
+
+Clicking Next preserves the search:
+
+```text
+/customers/?q=Japan&page=2
+```
+
+This is why the pagination links contain both:
+
+```django
+?q={{ query }}&page={{ page_obj.next_page_number }}
+```
+
+instead of only:
+
+```django
+?page={{ page_obj.next_page_number }}
+```
+
+Otherwise the search would disappear when changing pages.
+
+The processing order is:
+
+```text
+Customer.objects.all()
+        ↓
+Search Filter
+        ↓
+Matching Customers
+        ↓
+order_by("name")
+        ↓
+Paginator
+        ↓
+Current Page
+        ↓
+customer_list.html
+```
+
+For example:
+
+```text
+100 Customers
+      ↓
+Search "Japan"
+      ↓
+20 Matching Customers
+      ↓
+5 Customers per page
+      ↓
+4 Pages
+```
+
+The Customer List can now handle:
+
+```text
+/customers/
+```
+
+All Customers.
+
+```text
+/customers/?q=Japan
+```
+
+Search results.
+
+```text
+/customers/?page=2
+```
+
+Page 2.
+
+```text
+/customers/?q=Japan&page=2
+```
+
+Page 2 of the Japan search results.
+
+## Day 4 Project Status
+
+Customer Management now supports:
+
+```text
+Create Customer             ✅
+Customer List               ✅
+Customer Detail             ✅
+Edit Customer               ✅
+Delete Customer             ✅
+Delete Confirmation         ✅
+Customer Search             ✅
+Multi-field Search          ✅
+No-results Handling         ✅
+Customer Pagination         ✅
+Search + Pagination         ✅
+```
+
+The Customer module now has:
+
+```text
+                 CUSTOMER MANAGEMENT
+
+                         Customer
+                            │
+          ┌─────────────────┼─────────────────┐
+          ↓                 ↓                 ↓
+        Create             Read             Search
+          ✅                ✅                ✅
+                            │
+                      ┌─────┴─────┐
+                      ↓           ↓
+                    List        Detail
+                      ✅           ✅
+                      │
+                      ↓
+                  Pagination
+                      ✅
+
+                            │
+                     ┌──────┴──────┐
+                     ↓             ↓
+                   Update        Delete
+                     ✅             ✅
+```
+
+The next major development stage is **Contact Management**.
+
+This will introduce the first relationship between CRM models:
+
+```text
+Customer
+    │
+    │ One
+    │
+    └──────────────┐
+                   │
+                   │ Many
+                   ↓
+                Contacts
+```
+
+Django's:
+
+```python
+ForeignKey
+```
+
+will be used to connect each Contact to a Customer.
+
+[⬆ Back to Table of Contents](#table-of-contents)
+
+---
+
