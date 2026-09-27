@@ -11,6 +11,46 @@ Customers
 
 <div class="page-header">
 
+    <form method="get"
+        action="{% url 'customer_list' %}"
+        class="search-form">
+
+        <input
+            type="text"
+            name="q"
+            value="{{ query }}"
+            placeholder="Search customers..."
+            class="search-input"
+        >
+
+        <button type="submit"
+                class="button">
+
+            Search
+
+        </button>
+
+        {% if query %}
+
+            <p class="search-result-info">
+
+                Search results for:
+                <strong>{{ query }}</strong>
+
+            </p>
+
+            <a href="{% url 'customer_list' %}"
+            class="cancel-button">
+
+                Clear
+
+            </a>
+
+        {% endif %}
+
+    </form>
+
+
     <div>
 
         <h1>Customers</h1>
@@ -67,19 +107,19 @@ Customers
             </td>
 
             <td>
-                {{ customer.industry }}
+                {{ customer.industry|default:"-" }}
             </td>
 
             <td>
-                {{ customer.country }}
+                {{ customer.country|default:"-" }}
             </td>
 
             <td>
-                {{ customer.email }}
+                {{ customer.email|default:"-" }}
             </td>
 
             <td>
-                {{ customer.phone }}
+                {{ customer.phone|default:"-" }}
             </td>
 
         </tr>
@@ -89,7 +129,8 @@ Customers
 
         <tr>
 
-            <td colspan="5">
+            <td colspan="5"
+                class="empty-message">
                 No customers found.
             </td>
 
@@ -105,6 +146,40 @@ Customers
 
 
 </div>
+
+{% if page_obj.paginator.num_pages > 1 %}
+
+    <div class="pagination">
+
+        {% if page_obj.has_previous %}
+
+            <a href="?q={{ query }}&page={{ page_obj.previous_page_number }}">
+                ← Previous
+            </a>
+
+        {% endif %}
+
+
+        <span class="page-info">
+
+            Page {{ page_obj.number }}
+            of
+            {{ page_obj.paginator.num_pages }}
+
+        </span>
+
+
+        {% if page_obj.has_next %}
+
+            <a href="?q={{ query }}&page={{ page_obj.next_page_number }}">
+                Next →
+            </a>
+
+        {% endif %}
+
+    </div>
+
+{% endif %}
 
 
 {% endblock %}

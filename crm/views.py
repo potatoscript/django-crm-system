@@ -1,3 +1,5 @@
+from django.core.paginator import Paginator
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect,render
 from .models import Customer
 from .forms import CustomerForm
@@ -15,13 +17,38 @@ def dashboard(request):
     return render(request, "crm/dashboard.html", context)
 
 def customer_list(request):
-    customers = Customer.objects.order_by("name")
+    query = request.GET.get("q", "")
+
+    customers = Customer.objects.all()
+
+    if query:
+        customers = customers.filter(
+            Q(name__icontains=query)
+            | Q(industry__icontains=query)
+            | Q(email__icontains=query)
+            | Q(phone__icontains=query)
+            | Q(country__icontains=query)
+        )
+
+    customers = customers.order_by("name")
+
+    paginator = Paginator(customers, 5)
+
+    page_number = request.GET.get("page")
+
+    page_obj = paginator.get_page(page_number)
 
     context = {
-        "customers": customers,
+        "customers": page_obj,
+        "page_obj": page_obj,
+        "query": query,
     }
 
-    return render(request, "crm/customer_list.html", context)
+    return render(
+        request,
+        "crm/customer_list.html",
+        context
+    )
 
 def customer_detail(request, pk):
     customer = get_object_or_404(Customer, pk=pk)
