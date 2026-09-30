@@ -1,0 +1,167 @@
+{% extends "crm/base.html" %}
+
+
+{% block title %}
+{{ contact.first_name }} {{ contact.last_name }}
+{% endblock %}
+
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <h1>
+            {{ contact.first_name }}
+            {{ contact.last_name }}
+        </h1>
+
+        <p>
+            Contact Details
+        </p>
+
+    </div>
+
+
+    <div>
+
+        <a href="{% url 'contact_update' contact.pk %}"
+           class="button">
+            Edit Contact
+        </a>
+
+        <a href="{% url 'contact_delete' contact.pk %}"
+           class="delete-button">
+            Delete Contact
+        </a>
+
+    </div>
+
+</div>
+
+
+<div class="detail-container">
+
+    <div class="detail-row">
+
+        <div class="detail-label">
+            Customer
+        </div>
+
+        <div class="detail-value">
+
+            <a href="{% url 'customer_detail' contact.customer.pk %}">
+                {{ contact.customer.name }}
+            </a>
+
+        </div>
+
+    </div>
+
+
+    <div class="detail-row">
+
+        <div class="detail-label">
+            Job Title
+        </div>
+
+        <div class="detail-value">
+            {{ contact.job_title|default:"-" }}
+        </div>
+
+    </div>
+
+
+    <div class="detail-row">
+
+        <div class="detail-label">
+            Email
+        </div>
+
+        <div class="detail-value">
+            {{ contact.email|default:"-" }}
+        </div>
+
+    </div>
+
+
+    <div class="detail-row">
+
+        <div class="detail-label">
+            Phone
+        </div>
+
+        <div class="detail-value">
+            {{ contact.phone|default:"-" }}
+        </div>
+
+    </div>
+
+
+    <div class="detail-row">
+
+        <div class="detail-label">
+            Mobile
+        </div>
+
+        <div class="detail-value">
+            {{ contact.mobile|default:"-" }}
+        </div>
+
+    </div>
+
+
+    <div class="detail-row">
+
+        <div class="detail-label">
+            Notes
+        </div>
+
+        <div class="detail-value">
+            {{ contact.notes|default:"-" }}
+        </div>
+
+    </div>
+
+
+    <div class="detail-row">
+
+        <div class="detail-label">
+            Created
+        </div>
+
+        <div class="detail-value">
+            {{ contact.created_at }}
+        </div>
+
+    </div>
+
+
+    <div class="detail-row">
+
+        <div class="detail-label">
+            Last Updated
+        </div>
+
+        <div class="detail-value">
+            {{ contact.updated_at }}
+        </div>
+
+    </div>
+
+</div>
+
+
+<div class="form-actions">
+
+    <a href="{% url 'contact_list' %}"
+       class="cancel-button">
+
+        ← Back to Contacts
+
+    </a>
+
+</div>
+
+{% endblock %}

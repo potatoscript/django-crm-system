@@ -1,8 +1,8 @@
 from django.core.paginator import Paginator
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect,render
-from .models import Customer
-from .forms import CustomerForm
+from .models import Contact, Customer
+from .forms import ContactForm, CustomerForm
 
 
 def dashboard(request):
@@ -134,5 +134,113 @@ def customer_delete(request, pk):
     return render(
         request,
         "crm/customer_confirm_delete.html",
+        context
+    )
+
+def contact_list(request):
+    contacts = Contact.objects.select_related(
+        "customer"
+    ).order_by(
+        "last_name",
+        "first_name"
+    )
+
+    context = {
+        "contacts": contacts,
+    }
+
+    return render(
+        request,
+        "crm/contact_list.html",
+        context
+    )
+
+def contact_create(request):
+    if request.method == "POST":
+        form = ContactForm(request.POST)
+
+        if form.is_valid():
+            contact = form.save()
+
+            return redirect(
+                "contact_detail",
+                pk=contact.pk
+            )
+
+    else:
+        form = ContactForm()
+
+    context = {
+        "form": form,
+    }
+
+    return render(
+        request,
+        "crm/contact_form.html",
+        context
+    )
+
+def contact_detail(request, pk):
+    contact = get_object_or_404(
+        Contact.objects.select_related("customer"),
+        pk=pk
+    )
+
+    context = {
+        "contact": contact,
+    }
+
+    return render(
+        request,
+        "crm/contact_detail.html",
+        context
+    )
+
+def contact_update(request, pk):
+    contact = get_object_or_404(Contact, pk=pk)
+
+    if request.method == "POST":
+        form = ContactForm(
+            request.POST,
+            instance=contact
+        )
+
+        if form.is_valid():
+            form.save()
+
+            return redirect(
+                "contact_detail",
+                pk=contact.pk
+            )
+
+    else:
+        form = ContactForm(instance=contact)
+
+    context = {
+        "form": form,
+        "contact": contact,
+    }
+
+    return render(
+        request,
+        "crm/contact_form.html",
+        context
+    )
+
+def contact_delete(request, pk):
+    contact = get_object_or_404(Contact, pk=pk)
+
+    if request.method == "POST":
+        contact.delete()
+
+        return redirect("contact_list")
+
+    context = {
+        "contact": contact,
+    }
+
+    return render(
+        request,
+        "crm/contact_confirm_delete.html",
         context
     )

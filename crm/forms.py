@@ -1,5 +1,5 @@
 from django import forms
-from .models import Customer
+from .models import Contact, Customer
 
 
 class CustomerForm(forms.ModelForm):
@@ -16,3 +16,26 @@ class CustomerForm(forms.ModelForm):
             "address",
             "country",
         ]
+
+class ContactForm(forms.ModelForm):
+    class Meta:
+        model = Contact
+
+        fields = [
+            "customer",
+            "first_name",
+            "last_name",
+            "job_title",
+            "email",
+            "phone",
+            "mobile",
+            "notes",
+        ]
+
+        widgets = {
+            "notes": forms.Textarea(
+                attrs={
+                    "rows": 4,
+                }
+            ),
+        }

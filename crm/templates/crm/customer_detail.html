@@ -174,6 +174,77 @@
 
 </div>
 
+<h2>Contacts</h2>
+
+
+<div class="table-container">
+
+    <table>
+
+        <thead>
+
+            <tr>
+                <th>Name</th>
+                <th>Job Title</th>
+                <th>Email</th>
+                <th>Phone</th>
+            </tr>
+
+        </thead>
+
+
+        <tbody>
+
+            {% for contact in customer.contacts.all %}
+
+                <tr>
+
+                    <td>
+
+                        <a href="{% url 'contact_detail' contact.pk %}">
+
+                            {{ contact.first_name }}
+                            {{ contact.last_name }}
+
+                        </a>
+
+                    </td>
+
+                    <td>
+                        {{ contact.job_title|default:"-" }}
+                    </td>
+
+                    <td>
+                        {{ contact.email|default:"-" }}
+                    </td>
+
+                    <td>
+                        {{ contact.phone|default:"-" }}
+                    </td>
+
+                </tr>
+
+            {% empty %}
+
+                <tr>
+
+                    <td colspan="4"
+                        class="empty-message">
+
+                        No contacts for this customer.
+
+                    </td>
+
+                </tr>
+
+            {% endfor %}
+
+        </tbody>
+
+    </table>
+
+</div>
+
 
 <div class="form-actions">
 

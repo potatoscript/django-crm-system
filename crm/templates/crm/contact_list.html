@@ -1,0 +1,104 @@
+{% extends "crm/base.html" %}
+
+
+{% block title %}
+Contacts
+{% endblock %}
+
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+        <h1>Contacts</h1>
+
+        <p>
+            Manage people associated with your customers.
+        </p>
+    </div>
+
+    <div>
+        <a href="{% url 'contact_create' %}"
+           class="button">
+            Add Contact
+        </a>
+    </div>
+
+</div>
+
+
+<div class="table-container">
+
+    <table>
+
+        <thead>
+
+            <tr>
+                <th>Name</th>
+                <th>Customer</th>
+                <th>Job Title</th>
+                <th>Email</th>
+                <th>Phone</th>
+            </tr>
+
+        </thead>
+
+
+        <tbody>
+
+            {% for contact in contacts %}
+
+                <tr>
+
+                    <td>
+
+                        <a href="{% url 'contact_detail' contact.pk %}">
+
+                            {{ contact.first_name }}
+                            {{ contact.last_name }}
+
+                        </a>
+
+                    </td>
+
+                    <td>
+                        {{ contact.customer.name }}
+                    </td>
+
+                    <td>
+                        {{ contact.job_title|default:"-" }}
+                    </td>
+
+                    <td>
+                        {{ contact.email|default:"-" }}
+                    </td>
+
+                    <td>
+                        {{ contact.phone|default:"-" }}
+                    </td>
+
+                </tr>
+
+            {% empty %}
+
+                <tr>
+
+                    <td colspan="5"
+                        class="empty-message">
+
+                        No contacts found.
+
+                    </td>
+
+                </tr>
+
+            {% endfor %}
+
+        </tbody>
+
+    </table>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends "crm/base.html" %}
+
+
+{% block title %}
+Delete {{ contact.first_name }} {{ contact.last_name }}
+{% endblock %}
+
+
+{% block content %}
+
+<h1>Delete Contact</h1>
+
+
+<div class="delete-container">
+
+    <h2>
+        Are you sure?
+    </h2>
+
+    <p>
+        You are about to delete:
+    </p>
+
+    <div class="delete-customer-name">
+
+        {{ contact.first_name }}
+        {{ contact.last_name }}
+
+    </div>
+
+    <p>
+        Customer:
+        <strong>{{ contact.customer.name }}</strong>
+    </p>
+
+    <p class="delete-warning">
+        This action cannot be undone.
+    </p>
+
+
+    <form method="post">
+
+        {% csrf_token %}
+
+        <div class="form-actions">
+
+            <button type="submit"
+                    class="delete-button">
+
+                Yes, Delete Contact
+
+            </button>
+
+            <a href="{% url 'contact_detail' contact.pk %}"
+               class="cancel-button">
+
+                Cancel
+
+            </a>
+
+        </div>
+
+    </form>
+
+</div>
+
+{% endblock %}

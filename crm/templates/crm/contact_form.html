@@ -1,0 +1,105 @@
+{% extends "crm/base.html" %}
+
+
+{% block title %}
+
+    {% if contact %}
+        Edit {{ contact.first_name }} {{ contact.last_name }}
+    {% else %}
+        Add Contact
+    {% endif %}
+
+{% endblock %}
+
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <h1>
+
+            {% if contact %}
+                Edit Contact
+            {% else %}
+                Add Contact
+            {% endif %}
+
+        </h1>
+
+        <p>
+            Enter the contact information below.
+        </p>
+
+    </div>
+
+</div>
+
+
+<div class="form-container">
+
+    <form method="post">
+
+        {% csrf_token %}
+
+        {% for field in form %}
+
+            <div class="form-group">
+
+                <label for="{{ field.id_for_label }}">
+                    {{ field.label }}
+                </label>
+
+                {{ field }}
+
+                {% if field.errors %}
+
+                    <div class="form-error">
+                        {{ field.errors }}
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+        {% endfor %}
+
+
+        <div class="form-actions">
+
+            <button type="submit"
+                    class="button">
+
+                {% if contact %}
+                    Update Contact
+                {% else %}
+                    Save Contact
+                {% endif %}
+
+            </button>
+
+
+            {% if contact %}
+
+                <a href="{% url 'contact_detail' contact.pk %}"
+                   class="cancel-button">
+                    Cancel
+                </a>
+
+            {% else %}
+
+                <a href="{% url 'contact_list' %}"
+                   class="cancel-button">
+                    Cancel
+                </a>
+
+            {% endif %}
+
+        </div>
+
+    </form>
+
+</div>
+
+{% endblock %}
