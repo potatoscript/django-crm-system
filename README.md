@@ -118,6 +118,12 @@ The system will eventually provide:
 82. [Customer Search](#82-customer-search)  
 83. [Customer Pagination](#83-customer-pagination)
 
+## Day 5 — Contact Management
+
+84. [Contact Model and Customer Relationship](#84-contact-model-and-customer-relationship)  
+85. [Contact Management](#85-contact-management)
+
+
 ---
 
 
@@ -4983,6 +4989,1390 @@ ForeignKey
 ```
 
 will be used to connect each Contact to a Customer.
+
+[⬆ Back to Table of Contents](#table-of-contents)
+
+---
+
+# Day 5 — Contact Management and Customer Relationships
+
+Day 5 expands the CRM beyond Customer Management by introducing **Contacts**.
+
+A Customer represents a company or organization, while a Contact represents a person associated with that Customer.
+
+For example:
+
+```text
+ABC Manufacturing
+│
+├── John Tan
+│   ├── Sales Manager
+│   ├── john@example.com
+│   └── 090-1111-2222
+│
+├── Yuki Sato
+│   ├── Engineering Manager
+│   └── yuki@example.com
+│
+└── Ken Suzuki
+    ├── Purchasing Manager
+    └── ken@example.com
+```
+
+This introduces the first database relationship in the CRM:
+
+```text
+Customer
+    │
+    │ One
+    │
+    └───────────────┐
+                    │ Many
+                    ↓
+                 Contacts
+```
+
+The main Django concept introduced during Day 5 is:
+
+```python
+models.ForeignKey
+```
+
+This allows each Contact to belong to a Customer while allowing one Customer to have multiple Contacts.
+
+---
+
+# 84. Contact Model and Customer Relationship
+
+## Create the Contact Model
+
+The Contact model was added to:
+
+```text
+crm/models.py
+```
+
+The model is:
+
+```python
+class Contact(models.Model):
+    customer = models.ForeignKey(
+        Customer,
+        on_delete=models.CASCADE,
+        related_name="contacts"
+    )
+
+    first_name = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100)
+    job_title = models.CharField(max_length=150, blank=True)
+
+    email = models.EmailField(blank=True)
+    phone = models.CharField(max_length=50, blank=True)
+    mobile = models.CharField(max_length=50, blank=True)
+
+    notes = models.TextField(blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.first_name} {self.last_name}"
+```
+
+The Contact model contains:
+
+```text
+Contact
+│
+├── customer
+├── first_name
+├── last_name
+├── job_title
+├── email
+├── phone
+├── mobile
+├── notes
+├── created_at
+└── updated_at
+```
+
+The most important field is:
+
+```python
+customer = models.ForeignKey(
+    Customer,
+    on_delete=models.CASCADE,
+    related_name="contacts"
+)
+```
+
+This creates the relationship between Customers and Contacts.
+
+---
+
+## Understanding `ForeignKey`
+
+A Django `ForeignKey` represents a many-to-one relationship.
+
+In this CRM:
+
+```text
+One Customer
+     │
+     ├── Contact
+     ├── Contact
+     ├── Contact
+     └── Contact
+```
+
+Each Contact belongs to only one Customer:
+
+```text
+John Tan
+   │
+   └── ABC Manufacturing
+```
+
+but one Customer can have many Contacts:
+
+```text
+ABC Manufacturing
+│
+├── John Tan
+├── Yuki Sato
+└── Ken Suzuki
+```
+
+In the database, the Contact table contains a reference to the Customer:
+
+```text
+crm_contact
+
+id | customer_id | first_name | last_name | job_title
+------------------------------------------------------
+1  | 1           | John       | Tan       | Manager
+2  | 1           | Yuki       | Sato      | Engineer
+3  | 2           | Taro       | Yamada    | Manager
+```
+
+The:
+
+```text
+customer_id
+```
+
+column identifies which Customer owns each Contact.
+
+Conceptually:
+
+```text
+crm_customer
+                       crm_contact
+
+id = 1                 id = 1
+ABC Manufacturing  ←── customer_id = 1
+                       John Tan
+
+                   ←── id = 2
+                       customer_id = 1
+                       Yuki Sato
+
+
+id = 2                 id = 3
+Kobe Engineering   ←── customer_id = 2
+                       Taro Yamada
+```
+
+---
+
+## Understanding `on_delete=models.CASCADE`
+
+The ForeignKey contains:
+
+```python
+on_delete=models.CASCADE
+```
+
+This determines what happens to Contacts if their Customer is deleted.
+
+For example:
+
+```text
+ABC Manufacturing
+│
+├── John Tan
+├── Yuki Sato
+└── Ken Suzuki
+```
+
+If:
+
+```text
+ABC Manufacturing
+```
+
+is deleted, Django will also delete its related Contacts:
+
+```text
+John Tan
+Yuki Sato
+Ken Suzuki
+```
+
+The relationship therefore behaves as:
+
+```text
+Delete Customer
+      ↓
+Find related Contacts
+      ↓
+Delete related Contacts
+```
+
+For the current CRM implementation, Contacts are considered part of the Customer relationship.
+
+A future production CRM could instead introduce archiving or soft deletion if historical records need to be retained.
+
+---
+
+## Understanding `related_name="contacts"`
+
+The ForeignKey also contains:
+
+```python
+related_name="contacts"
+```
+
+This creates a convenient reverse relationship.
+
+Starting from a Contact:
+
+```python
+contact.customer
+```
+
+returns the Contact's Customer.
+
+Starting from a Customer:
+
+```python
+customer.contacts.all()
+```
+
+returns all Contacts belonging to that Customer.
+
+The relationship therefore works in both directions:
+
+```text
+Contact
+   │
+   │ contact.customer
+   ↓
+Customer
+
+
+Customer
+   │
+   │ customer.contacts.all()
+   ↓
+Contacts
+```
+
+For example:
+
+```python
+customer = Customer.objects.get(pk=1)
+
+contacts = customer.contacts.all()
+```
+
+can retrieve all Contacts belonging to Customer 1.
+
+---
+
+## Create the Contact Database Table
+
+Because `models.py` was changed, a new migration was required.
+
+The Django model update process remains:
+
+```text
+models.py
+    ↓
+makemigrations
+    ↓
+Migration File
+    ↓
+migrate
+    ↓
+SQLite Database
+```
+
+Create the migration:
+
+```powershell
+python manage.py makemigrations
+```
+
+Django creates a migration similar to:
+
+```text
+crm\migrations\0002_contact.py
+```
+
+with an operation similar to:
+
+```text
+Create model Contact
+```
+
+Apply the migration:
+
+```powershell
+python manage.py migrate
+```
+
+Django then creates the Contact database table in:
+
+```text
+db.sqlite3
+```
+
+The important development rule remains:
+
+```text
+Change Django Model
+        ↓
+python manage.py makemigrations
+        ↓
+python manage.py migrate
+```
+
+---
+
+## Register Contact in Django Admin
+
+The Contact model was registered in:
+
+```text
+crm/admin.py
+```
+
+The model import was updated to:
+
+```python
+from .models import Contact, Customer
+```
+
+The Contact Admin configuration was added:
+
+```python
+@admin.register(Contact)
+class ContactAdmin(admin.ModelAdmin):
+    list_display = (
+        "first_name",
+        "last_name",
+        "customer",
+        "job_title",
+        "email",
+        "phone",
+    )
+
+    search_fields = (
+        "first_name",
+        "last_name",
+        "customer__name",
+        "job_title",
+        "email",
+    )
+```
+
+The Django Admin now contains:
+
+```text
+CRM
+│
+├── Customers
+└── Contacts
+```
+
+An important new ORM concept appears here:
+
+```python
+"customer__name"
+```
+
+The double underscore allows Django to follow the ForeignKey relationship:
+
+```text
+Contact
+   ↓
+customer
+   ↓
+Customer
+   ↓
+name
+```
+
+This allows Django Admin to search Contacts using the related Customer name.
+
+[⬆ Back to Table of Contents](#table-of-contents)
+
+---
+
+# 85. Contact Management
+
+After creating the Contact database model, the custom CRM interface was extended with Contact Management.
+
+The Contact module now provides:
+
+```text
+Contacts
+│
+├── List
+├── Create
+├── Detail
+├── Update
+└── Delete
+```
+
+This follows the same CRUD architecture previously created for Customers.
+
+---
+
+## Create `ContactForm`
+
+The existing:
+
+```text
+crm/forms.py
+```
+
+was updated to import both models:
+
+```python
+from django import forms
+
+from .models import Contact, Customer
+```
+
+A new `ContactForm` was added:
+
+```python
+class ContactForm(forms.ModelForm):
+    class Meta:
+        model = Contact
+
+        fields = [
+            "customer",
+            "first_name",
+            "last_name",
+            "job_title",
+            "email",
+            "phone",
+            "mobile",
+            "notes",
+        ]
+
+        widgets = {
+            "notes": forms.Textarea(
+                attrs={
+                    "rows": 4,
+                }
+            ),
+        }
+```
+
+Because:
+
+```python
+customer
+```
+
+is a ForeignKey, Django automatically creates a Customer selection field in the form.
+
+Conceptually:
+
+```text
+Customer
+[ ABC Manufacturing ▼ ]
+
+First Name
+[ John ]
+
+Last Name
+[ Tan ]
+
+Job Title
+[ Sales Manager ]
+
+Email
+[ john@example.com ]
+```
+
+The Customer options come from the existing Customer records in the database.
+
+This demonstrates another advantage of Django `ModelForm`:
+
+```text
+Django Model
+     ↓
+ForeignKey
+     ↓
+ModelForm
+     ↓
+Customer Dropdown
+```
+
+---
+
+## Update the View Imports
+
+The imports in:
+
+```text
+crm/views.py
+```
+
+were updated to include Contact functionality:
+
+```python
+from .forms import ContactForm, CustomerForm
+from .models import Contact, Customer
+```
+
+The existing Django imports continue to provide functionality such as:
+
+```python
+get_object_or_404
+redirect
+render
+```
+
+---
+
+## Contact List
+
+The Contact List view was created:
+
+```python
+def contact_list(request):
+    contacts = Contact.objects.select_related(
+        "customer"
+    ).order_by(
+        "last_name",
+        "first_name"
+    )
+
+    context = {
+        "contacts": contacts,
+    }
+
+    return render(
+        request,
+        "crm/contact_list.html",
+        context
+    )
+```
+
+Contacts are ordered by:
+
+```text
+Last Name
+    ↓
+First Name
+```
+
+The view also introduces:
+
+```python
+select_related("customer")
+```
+
+Because each Contact belongs to a Customer, the Contact List needs related Customer information such as:
+
+```python
+contact.customer.name
+```
+
+`select_related()` allows Django to efficiently retrieve the related Customer information together with the Contact records.
+
+Conceptually:
+
+```text
+Contact Query
+     │
+     └── select_related("customer")
+                    ↓
+            Contact + Customer
+                    ↓
+               Template
+```
+
+---
+
+## Contact List Template
+
+A new template was created:
+
+```text
+crm/templates/crm/contact_list.html
+```
+
+The Contact table displays:
+
+```text
+Name
+Customer
+Job Title
+Email
+Phone
+```
+
+The main loop is:
+
+```django
+{% for contact in contacts %}
+```
+
+Contact names link to the Contact Detail page:
+
+```django
+<a href="{% url 'contact_detail' contact.pk %}">
+    {{ contact.first_name }}
+    {{ contact.last_name }}
+</a>
+```
+
+The related Customer is displayed with:
+
+```django
+{{ contact.customer.name }}
+```
+
+This demonstrates using the ForeignKey relationship directly from the template:
+
+```text
+contact
+   ↓
+customer
+   ↓
+name
+```
+
+If no Contacts exist, the template displays:
+
+```text
+No contacts found.
+```
+
+using Django's:
+
+```django
+{% empty %}
+```
+
+functionality.
+
+---
+
+## Contact Create
+
+The Contact Create view was added:
+
+```python
+def contact_create(request):
+    if request.method == "POST":
+        form = ContactForm(request.POST)
+
+        if form.is_valid():
+            contact = form.save()
+
+            return redirect(
+                "contact_detail",
+                pk=contact.pk
+            )
+
+    else:
+        form = ContactForm()
+
+    context = {
+        "form": form,
+    }
+
+    return render(
+        request,
+        "crm/contact_form.html",
+        context
+    )
+```
+
+The request flow is:
+
+```text
+GET /contacts/add/
+        ↓
+Create empty ContactForm
+        ↓
+Display Form
+        ↓
+User enters Contact information
+        ↓
+POST /contacts/add/
+        ↓
+ContactForm(request.POST)
+        ↓
+form.is_valid()
+        ↓
+form.save()
+        ↓
+New Contact
+        ↓
+Redirect to Contact Detail
+```
+
+The Customer ForeignKey is selected through the Customer dropdown in the form.
+
+---
+
+## Reusable Contact Form Template
+
+A new template was created:
+
+```text
+crm/templates/crm/contact_form.html
+```
+
+The same template is used for:
+
+```text
+Add Contact
+     +
+Edit Contact
+```
+
+The template determines which operation is being performed using:
+
+```django
+{% if contact %}
+```
+
+When no existing Contact is supplied:
+
+```text
+Add Contact
+```
+
+is displayed.
+
+When an existing Contact is supplied:
+
+```text
+Edit Contact
+```
+
+is displayed.
+
+This follows the same reusable form pattern used for Customer Management.
+
+---
+
+## Contact Detail
+
+The Contact Detail view was created:
+
+```python
+def contact_detail(request, pk):
+    contact = get_object_or_404(
+        Contact.objects.select_related("customer"),
+        pk=pk
+    )
+
+    context = {
+        "contact": contact,
+    }
+
+    return render(
+        request,
+        "crm/contact_detail.html",
+        context
+    )
+```
+
+The Contact is retrieved using its primary key:
+
+```text
+/contacts/1/
+          ↑
+          pk
+```
+
+`get_object_or_404()` returns the Contact if it exists.
+
+If it does not exist, Django returns:
+
+```text
+404 Not Found
+```
+
+The Contact Detail page displays information such as:
+
+```text
+John Tan
+
+Customer       ABC Manufacturing
+Job Title      Sales Manager
+Email          john@example.com
+Phone          078-123-4567
+Mobile         090-1234-5678
+Notes          Main sales contact.
+Created        ...
+Last Updated   ...
+```
+
+The Customer name links back to the related Customer Detail page:
+
+```django
+<a href="{% url 'customer_detail' contact.customer.pk %}">
+    {{ contact.customer.name }}
+</a>
+```
+
+This creates navigation between the two CRM entities:
+
+```text
+Contact Detail
+      ↓
+Related Customer
+      ↓
+Customer Detail
+```
+
+---
+
+## Edit Contact
+
+The Contact Update view was added:
+
+```python
+def contact_update(request, pk):
+    contact = get_object_or_404(Contact, pk=pk)
+
+    if request.method == "POST":
+        form = ContactForm(
+            request.POST,
+            instance=contact
+        )
+
+        if form.is_valid():
+            form.save()
+
+            return redirect(
+                "contact_detail",
+                pk=contact.pk
+            )
+
+    else:
+        form = ContactForm(instance=contact)
+
+    context = {
+        "form": form,
+        "contact": contact,
+    }
+
+    return render(
+        request,
+        "crm/contact_form.html",
+        context
+    )
+```
+
+The important concept is:
+
+```python
+instance=contact
+```
+
+Without `instance=contact`, Django would create a new Contact.
+
+With:
+
+```python
+instance=contact
+```
+
+Django updates the existing record.
+
+The process is:
+
+```text
+Existing Contact
+       ↓
+ContactForm(instance=contact)
+       ↓
+Existing values displayed
+       ↓
+User changes information
+       ↓
+POST
+       ↓
+ContactForm(
+    request.POST,
+    instance=contact
+)
+       ↓
+form.save()
+       ↓
+UPDATE existing Contact
+```
+
+---
+
+## Delete Contact
+
+The Contact Delete view was added:
+
+```python
+def contact_delete(request, pk):
+    contact = get_object_or_404(Contact, pk=pk)
+
+    if request.method == "POST":
+        contact.delete()
+
+        return redirect("contact_list")
+
+    context = {
+        "contact": contact,
+    }
+
+    return render(
+        request,
+        "crm/contact_confirm_delete.html",
+        context
+    )
+```
+
+The delete operation follows the same safety pattern as Customer deletion:
+
+```text
+GET
+ ↓
+Show Confirmation Page
+
+POST
+ ↓
+Delete Contact
+```
+
+The user first sees:
+
+```text
+Delete Contact
+
+Are you sure?
+
+You are about to delete:
+
+John Tan
+
+Customer: ABC Manufacturing
+
+This action cannot be undone.
+
+[ Yes, Delete Contact ] [ Cancel ]
+```
+
+The actual deletion only occurs after a POST request.
+
+The form therefore contains:
+
+```django
+<form method="post">
+
+    {% csrf_token %}
+
+    ...
+
+</form>
+```
+
+This prevents simply opening a URL from immediately deleting data.
+
+---
+
+## Contact URL Architecture
+
+The following Contact routes were added to:
+
+```text
+crm/urls.py
+```
+
+```python
+path(
+    "contacts/",
+    views.contact_list,
+    name="contact_list"
+),
+
+path(
+    "contacts/add/",
+    views.contact_create,
+    name="contact_create"
+),
+
+path(
+    "contacts/<int:pk>/",
+    views.contact_detail,
+    name="contact_detail"
+),
+
+path(
+    "contacts/<int:pk>/edit/",
+    views.contact_update,
+    name="contact_update"
+),
+
+path(
+    "contacts/<int:pk>/delete/",
+    views.contact_delete,
+    name="contact_delete"
+),
+```
+
+The CRM now has parallel Customer and Contact URL structures:
+
+```text
+CUSTOMERS
+
+/customers/
+      ↓
+Customer List
+
+/customers/add/
+      ↓
+Add Customer
+
+/customers/<pk>/
+      ↓
+Customer Detail
+
+/customers/<pk>/edit/
+      ↓
+Edit Customer
+
+/customers/<pk>/delete/
+      ↓
+Delete Customer
+
+
+CONTACTS
+
+/contacts/
+      ↓
+Contact List
+
+/contacts/add/
+      ↓
+Add Contact
+
+/contacts/<pk>/
+      ↓
+Contact Detail
+
+/contacts/<pk>/edit/
+      ↓
+Edit Contact
+
+/contacts/<pk>/delete/
+      ↓
+Delete Contact
+```
+
+---
+
+## Connect Contacts to the Sidebar
+
+The Contacts navigation item in:
+
+```text
+crm/templates/crm/base.html
+```
+
+was connected to:
+
+```django
+{% url 'contact_list' %}
+```
+
+The CRM sidebar can therefore navigate between:
+
+```text
+My CRM
+
+Dashboard
+Customers
+Contacts
+Opportunities
+Activities
+Reports
+```
+
+The Contacts item now opens:
+
+```text
+/contacts/
+```
+
+---
+
+## Display Contacts on Customer Detail
+
+The Customer Detail page was also extended to display the Contacts belonging to that Customer.
+
+The relationship is accessed using:
+
+```django
+customer.contacts.all
+```
+
+This is available because the Contact ForeignKey was defined with:
+
+```python
+related_name="contacts"
+```
+
+The Customer Detail template can therefore use:
+
+```django
+{% for contact in customer.contacts.all %}
+
+    ...
+
+{% endfor %}
+```
+
+For example:
+
+```text
+ABC Manufacturing
+
+Industry: Manufacturing
+Country: Japan
+Email: abc@abc.com
+
+
+Contacts
+
+Name          Job Title              Email
+---------------------------------------------------
+John Tan      Sales Manager          john@example.com
+Yuki Sato     Engineering Manager    yuki@example.com
+Ken Suzuki    Purchasing Manager     ken@example.com
+```
+
+Each Contact name links to its Contact Detail page:
+
+```django
+<a href="{% url 'contact_detail' contact.pk %}">
+    {{ contact.first_name }}
+    {{ contact.last_name }}
+</a>
+```
+
+The CRM therefore supports navigation in both directions:
+
+```text
+Customer Detail
+      │
+      └── Contacts
+             │
+             ↓
+        Contact Detail
+             │
+             ↓
+       Related Customer
+             │
+             ↓
+       Customer Detail
+```
+
+---
+
+## Day 5 Database Relationship
+
+Before Day 5, the main CRM database structure was essentially:
+
+```text
+Customer
+```
+
+After Day 5:
+
+```text
+                 CRM DATABASE
+
+                      │
+                      ↓
+
+                   Customer
+                      │
+                      │ 1
+                      │
+                      │
+                      │ *
+                      ↓
+                   Contact
+```
+
+This represents:
+
+```text
+Customer 1 ──────── * Contact
+```
+
+or:
+
+```text
+One Customer
+      ↓
+Many Contacts
+```
+
+The relationship can be accessed in Python using:
+
+```python
+contact.customer
+```
+
+from Contact to Customer, and:
+
+```python
+customer.contacts.all()
+```
+
+from Customer to Contacts.
+
+---
+
+## Day 5 Request Architecture
+
+The Contact module now follows:
+
+```text
+                         Browser
+                            │
+                            ↓
+                        crm/urls.py
+                            │
+          ┌─────────────────┼─────────────────┐
+          │                 │                 │
+          ↓                 ↓                 ↓
+     Contact List      Contact Create    Contact Detail
+          │                 │                 │
+          └─────────────────┼─────────────────┘
+                            │
+                            ↓
+                         views.py
+                            │
+                            ↓
+                     Django ORM
+                            │
+              ┌─────────────┴─────────────┐
+              ↓                           ↓
+           Contact                     Customer
+              │                           ↑
+              └────── ForeignKey ─────────┘
+                            │
+                            ↓
+                         SQLite
+                            │
+                            ↓
+                       Templates
+                            │
+                            ↓
+                         Browser
+```
+
+---
+
+## Day 5 Project Status
+
+The CRM now supports two major business entities:
+
+```text
+CRM
+│
+├── Customers
+│   ├── Create               ✅
+│   ├── List                 ✅
+│   ├── Detail               ✅
+│   ├── Edit                 ✅
+│   ├── Delete               ✅
+│   ├── Search               ✅
+│   └── Pagination           ✅
+│
+└── Contacts
+    ├── Customer Relationship ✅
+    ├── Create                ✅
+    ├── List                  ✅
+    ├── Detail                ✅
+    ├── Edit                  ✅
+    └── Delete                ✅
+```
+
+New Django concepts introduced during Day 5:
+
+```text
+ForeignKey                       ✅
+One-to-Many Relationships        ✅
+on_delete=models.CASCADE         ✅
+related_name                     ✅
+Reverse Relationships            ✅
+select_related()                 ✅
+Related Model Form Dropdown      ✅
+Cross-model Navigation           ✅
+```
+
+The most important architectural change is:
+
+```text
+Day 1–4
+
+Customer
+   │
+   └── Independent CRM entity
+
+
+Day 5
+
+Customer
+   │
+   ├── Contact
+   ├── Contact
+   └── Contact
+```
+
+The CRM has therefore started moving from basic CRUD screens toward a **relational CRM data model**.
+
+A future development stage can introduce **Opportunity / Sales Pipeline Management**, connecting sales opportunities to Customers and eventually Contacts.
+
+For example:
+
+```text
+Customer
+   │
+   ├── Contacts
+   │
+   └── Opportunities
+          │
+          ├── Opportunity Name
+          ├── Sales Stage
+          ├── Amount
+          ├── Probability
+          ├── Expected Close Date
+          └── Status
+```
 
 [⬆ Back to Table of Contents](#table-of-contents)
 
