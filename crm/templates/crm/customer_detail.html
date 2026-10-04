@@ -245,6 +245,77 @@
 
 </div>
 
+<h2>Opportunities</h2>
+
+
+<div class="table-container">
+
+    <table>
+
+        <thead>
+
+            <tr>
+                <th>Opportunity</th>
+                <th>Stage</th>
+                <th>Amount</th>
+                <th>Probability</th>
+                <th>Expected Close</th>
+            </tr>
+
+        </thead>
+
+
+        <tbody>
+
+            {% for opportunity in customer.opportunities.all %}
+
+                <tr>
+
+                    <td>
+
+                        <a href="{% url 'opportunity_detail' opportunity.pk %}">
+                            {{ opportunity.name }}
+                        </a>
+
+                    </td>
+
+                    <td>
+                        {{ opportunity.get_stage_display }}
+                    </td>
+
+                    <td>
+                        ¥{{ opportunity.amount }}
+                    </td>
+
+                    <td>
+                        {{ opportunity.probability }}%
+                    </td>
+
+                    <td>
+                        {{ opportunity.expected_close_date|default:"-" }}
+                    </td>
+
+                </tr>
+
+            {% empty %}
+
+                <tr>
+
+                    <td colspan="5"
+                        class="empty-message">
+                        No opportunities for this customer.
+                    </td>
+
+                </tr>
+
+            {% endfor %}
+
+        </tbody>
+
+    </table>
+
+</div>
+
 
 <div class="form-actions">
 

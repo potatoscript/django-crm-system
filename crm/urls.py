@@ -69,5 +69,33 @@ urlpatterns = [
         name="contact_delete"
     ),
 
-    
+    path(
+        "opportunities/",
+        views.opportunity_list,
+        name="opportunity_list"
+    ),
+
+    path(
+        "opportunities/add/",
+        views.opportunity_create,
+        name="opportunity_create"
+    ),
+
+    path(
+        "opportunities/<int:pk>/",
+        views.opportunity_detail,
+        name="opportunity_detail"
+    ),
+
+    path(
+        "opportunities/<int:pk>/edit/",
+        views.opportunity_update,
+        name="opportunity_update"
+    ),
+
+    path(
+        "opportunities/<int:pk>/delete/",
+        views.opportunity_delete,
+        name="opportunity_delete"
+    ),
 ]

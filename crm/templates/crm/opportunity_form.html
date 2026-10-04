@@ -1,0 +1,106 @@
+{% extends "crm/base.html" %}
+
+
+{% block title %}
+
+    {% if opportunity %}
+        Edit {{ opportunity.name }}
+    {% else %}
+        Add Opportunity
+    {% endif %}
+
+{% endblock %}
+
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <h1>
+
+            {% if opportunity %}
+                Edit Opportunity
+            {% else %}
+                Add Opportunity
+            {% endif %}
+
+        </h1>
+
+        <p>
+            Enter the opportunity information below.
+        </p>
+
+    </div>
+
+</div>
+
+
+<div class="form-container">
+
+    <form method="post">
+
+        {% csrf_token %}
+
+        {% for field in form %}
+
+            <div class="form-group">
+
+                <label for="{{ field.id_for_label }}">
+                    {{ field.label }}
+                </label>
+
+                {{ field }}
+
+                {% if field.errors %}
+
+                    <div class="form-error">
+                        {{ field.errors }}
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+        {% endfor %}
+
+
+        <div class="form-actions">
+
+            <button type="submit"
+                    class="button">
+
+                {% if opportunity %}
+                    Update Opportunity
+                {% else %}
+                    Save Opportunity
+                {% endif %}
+
+            </button>
+
+
+            {% if opportunity %}
+
+                <a href="{% url 'opportunity_detail' opportunity.pk %}"
+                   class="cancel-button">
+                    Cancel
+                </a>
+
+            {% else %}
+
+                <a href="{% url 'opportunity_list' %}"
+                   class="cancel-button">
+                    Cancel
+                </a>
+
+            {% endif %}
+
+        </div>
+
+    </form>
+
+</div>
+
+
+{% endblock %}

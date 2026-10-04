@@ -38,3 +38,49 @@ class Contact(models.Model):
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
+
+class Opportunity(models.Model):
+
+    STAGE_CHOICES = [
+        ("lead", "Lead"),
+        ("qualification", "Qualification"),
+        ("proposal", "Proposal"),
+        ("negotiation", "Negotiation"),
+        ("won", "Closed Won"),
+        ("lost", "Closed Lost"),
+    ]
+
+    customer = models.ForeignKey(
+        Customer,
+        on_delete=models.CASCADE,
+        related_name="opportunities"
+    )
+
+    name = models.CharField(max_length=200)
+
+    stage = models.CharField(
+        max_length=20,
+        choices=STAGE_CHOICES,
+        default="lead"
+    )
+
+    amount = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        default=0
+    )
+
+    probability = models.PositiveIntegerField(default=0)
+
+    expected_close_date = models.DateField(
+        blank=True,
+        null=True
+    )
+
+    description = models.TextField(blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Contact, Customer
+from .models import Contact, Customer, Opportunity
 
 
 @admin.register(Customer)
@@ -37,4 +37,27 @@ class ContactAdmin(admin.ModelAdmin):
         "customer__name",
         "job_title",
         "email",
+    )
+
+
+@admin.register(Opportunity)
+class OpportunityAdmin(admin.ModelAdmin):
+
+    list_display = (
+        "name",
+        "customer",
+        "stage",
+        "amount",
+        "probability",
+        "expected_close_date",
+    )
+
+    list_filter = (
+        "stage",
+    )
+
+    search_fields = (
+        "name",
+        "customer__name",
+        "description",
     )

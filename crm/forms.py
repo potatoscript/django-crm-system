@@ -1,5 +1,5 @@
 from django import forms
-from .models import Contact, Customer
+from .models import Contact, Customer, Opportunity
 
 
 class CustomerForm(forms.ModelForm):
@@ -34,6 +34,35 @@ class ContactForm(forms.ModelForm):
 
         widgets = {
             "notes": forms.Textarea(
+                attrs={
+                    "rows": 4,
+                }
+            ),
+        }
+
+class OpportunityForm(forms.ModelForm):
+
+    class Meta:
+        model = Opportunity
+
+        fields = [
+            "customer",
+            "name",
+            "stage",
+            "amount",
+            "probability",
+            "expected_close_date",
+            "description",
+        ]
+
+        widgets = {
+            "expected_close_date": forms.DateInput(
+                attrs={
+                    "type": "date",
+                }
+            ),
+
+            "description": forms.Textarea(
                 attrs={
                     "rows": 4,
                 }

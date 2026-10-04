@@ -1,0 +1,138 @@
+{% extends "crm/base.html" %}
+
+
+{% block title %}
+{{ opportunity.name }}
+{% endblock %}
+
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <h1>
+            {{ opportunity.name }}
+        </h1>
+
+        <p>
+            Opportunity Details
+        </p>
+
+    </div>
+
+
+    <div>
+
+        <a href="{% url 'opportunity_update' opportunity.pk %}"
+           class="button">
+            Edit Opportunity
+        </a>
+
+        <a href="{% url 'opportunity_delete' opportunity.pk %}"
+           class="delete-button">
+            Delete Opportunity
+        </a>
+
+    </div>
+
+</div>
+
+
+<div class="detail-container">
+
+    <div class="detail-row">
+
+        <div class="detail-label">
+            Customer
+        </div>
+
+        <div class="detail-value">
+
+            <a href="{% url 'customer_detail' opportunity.customer.pk %}">
+                {{ opportunity.customer.name }}
+            </a>
+
+        </div>
+
+    </div>
+
+
+    <div class="detail-row">
+
+        <div class="detail-label">
+            Stage
+        </div>
+
+        <div class="detail-value">
+            {{ opportunity.get_stage_display }}
+        </div>
+
+    </div>
+
+
+    <div class="detail-row">
+
+        <div class="detail-label">
+            Amount
+        </div>
+
+        <div class="detail-value">
+            ¥{{ opportunity.amount }}
+        </div>
+
+    </div>
+
+
+    <div class="detail-row">
+
+        <div class="detail-label">
+            Probability
+        </div>
+
+        <div class="detail-value">
+            {{ opportunity.probability }}%
+        </div>
+
+    </div>
+
+
+    <div class="detail-row">
+
+        <div class="detail-label">
+            Expected Close Date
+        </div>
+
+        <div class="detail-value">
+            {{ opportunity.expected_close_date|default:"-" }}
+        </div>
+
+    </div>
+
+
+    <div class="detail-row">
+
+        <div class="detail-label">
+            Description
+        </div>
+
+        <div class="detail-value">
+            {{ opportunity.description|default:"-" }}
+        </div>
+
+    </div>
+
+</div>
+
+
+<div class="form-actions">
+
+    <a href="{% url 'opportunity_list' %}"
+       class="cancel-button">
+        ← Back to Opportunities
+    </a>
+
+</div>
+
+{% endblock %}

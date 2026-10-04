@@ -1,0 +1,149 @@
+{% extends "crm/base.html" %}
+
+
+{% block title %}
+Opportunities
+{% endblock %}
+
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+        <h1>Opportunities</h1>
+
+        <p>
+            Manage potential sales opportunities.
+        </p>
+    </div>
+
+    <div>
+        <a href="{% url 'opportunity_create' %}"
+           class="button">
+            Add Opportunity
+        </a>
+    </div>
+
+</div>
+
+<div class="pipeline-summary">
+
+    <div class="pipeline-card">
+        <h3>Lead</h3>
+        <div class="pipeline-number">
+            {{ lead_count }}
+        </div>
+    </div>
+
+    <div class="pipeline-card">
+        <h3>Qualification</h3>
+        <div class="pipeline-number">
+            {{ qualification_count }}
+        </div>
+    </div>
+
+    <div class="pipeline-card">
+        <h3>Proposal</h3>
+        <div class="pipeline-number">
+            {{ proposal_count }}
+        </div>
+    </div>
+
+    <div class="pipeline-card">
+        <h3>Negotiation</h3>
+        <div class="pipeline-number">
+            {{ negotiation_count }}
+        </div>
+    </div>
+
+    <div class="pipeline-card">
+        <h3>Closed Won</h3>
+        <div class="pipeline-number">
+            {{ won_count }}
+        </div>
+    </div>
+
+    <div class="pipeline-card">
+        <h3>Closed Lost</h3>
+        <div class="pipeline-number">
+            {{ lost_count }}
+        </div>
+    </div>
+
+</div>
+
+<div class="table-container">
+
+    <table>
+
+        <thead>
+
+            <tr>
+                <th>Opportunity</th>
+                <th>Customer</th>
+                <th>Stage</th>
+                <th>Amount</th>
+                <th>Probability</th>
+                <th>Expected Close</th>
+            </tr>
+
+        </thead>
+
+
+        <tbody>
+
+            {% for opportunity in opportunities %}
+
+                <tr>
+
+                    <td>
+
+                        <a href="{% url 'opportunity_detail' opportunity.pk %}">
+                            {{ opportunity.name }}
+                        </a>
+
+                    </td>
+
+                    <td>
+                        {{ opportunity.customer.name }}
+                    </td>
+
+                    <td>
+                        {{ opportunity.get_stage_display }}
+                    </td>
+
+                    <td>
+                        ¥{{ opportunity.amount }}
+                    </td>
+
+                    <td>
+                        {{ opportunity.probability }}%
+                    </td>
+
+                    <td>
+                        {{ opportunity.expected_close_date|default:"-" }}
+                    </td>
+
+                </tr>
+
+            {% empty %}
+
+                <tr>
+
+                    <td colspan="6"
+                        class="empty-message">
+                        No opportunities found.
+                    </td>
+
+                </tr>
+
+            {% endfor %}
+
+        </tbody>
+
+    </table>
+
+</div>
+
+{% endblock %}

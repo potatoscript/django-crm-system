@@ -17,6 +17,51 @@
 
     <style>
         /* -------------------------
+        Sales Pipeline
+        ------------------------- */
+
+        .pipeline-summary {
+            display: grid;
+
+            grid-template-columns:
+                repeat(auto-fit, minmax(140px, 1fr));
+
+            gap: 15px;
+
+            margin: 25px 0;
+        }
+
+
+        .pipeline-card {
+            background: white;
+
+            padding: 20px;
+
+            border-radius: 8px;
+
+            border: 1px solid #e5e7eb;
+
+            text-align: center;
+        }
+
+
+        .pipeline-card h3 {
+            margin-top: 0;
+
+            font-size: 14px;
+
+            color: #666;
+        }
+
+
+        .pipeline-number {
+            font-size: 28px;
+
+            font-weight: bold;
+
+            margin-top: 10px;
+        }
+        /* -------------------------
         Pagination
         ------------------------- */
 
@@ -497,7 +542,7 @@
         Contacts
     </a>
 
-    <a href="#">
+    <a href="{% url 'opportunity_list' %}">
         Opportunities
     </a>
 
