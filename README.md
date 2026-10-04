@@ -123,6 +123,11 @@ The system will eventually provide:
 84. [Contact Model and Customer Relationship](#84-contact-model-and-customer-relationship)  
 85. [Contact Management](#85-contact-management)
 
+## Day 6 — Opportunity and Sales Pipeline Management
+
+86. [Opportunity Model and Customer Relationship](#86-opportunity-model-and-customer-relationship)  
+87. [Opportunity Management](#87-opportunity-management)  
+88. [Sales Pipeline](#88-sales-pipeline)
 
 ---
 
@@ -6378,3 +6383,1586 @@ Customer
 
 ---
 
+# Day 6 — Opportunity and Sales Pipeline Management
+
+Day 6 expands the CRM with **Opportunity Management** and a basic **Sales Pipeline**.
+
+Customers and Contacts describe **who we do business with**, while Opportunities represent **potential sales or business deals**.
+
+The CRM data structure now becomes:
+
+```text
+Customer
+│
+├── Contacts
+│     └── People associated with the customer
+│
+└── Opportunities
+      └── Potential sales / business deals
+```
+
+For example:
+
+```text
+ABC Manufacturing
+│
+├── Contacts
+│   ├── John Tan
+│   └── Yuki Sato
+│
+└── Opportunities
+    ├── New Heat Exchanger Project
+    │   ├── Stage: Proposal
+    │   ├── Amount: ¥12,000,000
+    │   ├── Probability: 60%
+    │   └── Expected Close: 2026-12-20
+    │
+    └── Maintenance Contract
+        ├── Stage: Negotiation
+        ├── Amount: ¥2,000,000
+        └── Probability: 80%
+```
+
+Day 6 introduces several new Django concepts:
+
+- Model field `choices`
+- `DecimalField`
+- `PositiveIntegerField`
+- `DateField`
+- `get_<field>_display`
+- Django Admin `list_filter`
+- Sales pipeline calculations using `filter()` and `count()`
+- Multiple relationships from Customer
+- Dashboard integration with additional models
+
+---
+
+# 86. Opportunity Model and Customer Relationship
+
+## Create the Opportunity Model
+
+A new `Opportunity` model was added to:
+
+```text
+crm/models.py
+```
+
+The model represents a potential sales deal associated with a Customer.
+
+```python
+class Opportunity(models.Model):
+
+    STAGE_CHOICES = [
+        ("lead", "Lead"),
+        ("qualification", "Qualification"),
+        ("proposal", "Proposal"),
+        ("negotiation", "Negotiation"),
+        ("won", "Closed Won"),
+        ("lost", "Closed Lost"),
+    ]
+
+    customer = models.ForeignKey(
+        Customer,
+        on_delete=models.CASCADE,
+        related_name="opportunities"
+    )
+
+    name = models.CharField(max_length=200)
+
+    stage = models.CharField(
+        max_length=20,
+        choices=STAGE_CHOICES,
+        default="lead"
+    )
+
+    amount = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        default=0
+    )
+
+    probability = models.PositiveIntegerField(default=0)
+
+    expected_close_date = models.DateField(
+        blank=True,
+        null=True
+    )
+
+    description = models.TextField(blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+```
+
+The Opportunity model contains:
+
+```text
+Opportunity
+│
+├── customer
+├── name
+├── stage
+├── amount
+├── probability
+├── expected_close_date
+├── description
+├── created_at
+└── updated_at
+```
+
+---
+
+## Opportunity Stage Choices
+
+Opportunity stages are defined using:
+
+```python
+STAGE_CHOICES = [
+    ("lead", "Lead"),
+    ("qualification", "Qualification"),
+    ("proposal", "Proposal"),
+    ("negotiation", "Negotiation"),
+    ("won", "Closed Won"),
+    ("lost", "Closed Lost"),
+]
+```
+
+The `stage` field uses these choices:
+
+```python
+stage = models.CharField(
+    max_length=20,
+    choices=STAGE_CHOICES,
+    default="lead"
+)
+```
+
+Using `choices` prevents inconsistent stage values from being entered manually.
+
+Instead of allowing values such as:
+
+```text
+Proposal
+proposal
+PROPOSAL
+Proposing
+Waiting for Proposal
+```
+
+the application provides predefined stages:
+
+```text
+Lead
+Qualification
+Proposal
+Negotiation
+Closed Won
+Closed Lost
+```
+
+Each choice contains two values:
+
+```text
+Database Value       Display Value
+
+lead                 Lead
+qualification        Qualification
+proposal             Proposal
+negotiation          Negotiation
+won                  Closed Won
+lost                 Closed Lost
+```
+
+For example, the database can store:
+
+```text
+proposal
+```
+
+while the user sees:
+
+```text
+Proposal
+```
+
+---
+
+## Opportunity and Customer Relationship
+
+The Opportunity belongs to a Customer through:
+
+```python
+customer = models.ForeignKey(
+    Customer,
+    on_delete=models.CASCADE,
+    related_name="opportunities"
+)
+```
+
+This creates another one-to-many relationship:
+
+```text
+Customer
+   │
+   │ 1
+   │
+   └───────────────┐
+                   │ *
+                   ↓
+             Opportunities
+```
+
+One Customer can therefore have multiple Opportunities:
+
+```text
+ABC Manufacturing
+│
+├── Heat Exchanger Project
+├── Maintenance Contract
+└── Plant Upgrade Project
+```
+
+Starting from an Opportunity, its Customer can be accessed using:
+
+```python
+opportunity.customer
+```
+
+Starting from a Customer, all related Opportunities can be retrieved using:
+
+```python
+customer.opportunities.all()
+```
+
+The Customer model now has two important reverse relationships:
+
+```text
+Customer
+│
+├── customer.contacts.all()
+│
+└── customer.opportunities.all()
+```
+
+This gives the CRM a more realistic relational structure:
+
+```text
+                  Customer
+                     │
+             ┌───────┴────────┐
+             │                │
+             ↓                ↓
+          Contacts       Opportunities
+```
+
+---
+
+## Opportunity Amount
+
+Sales value is stored using:
+
+```python
+amount = models.DecimalField(
+    max_digits=15,
+    decimal_places=2,
+    default=0
+)
+```
+
+`DecimalField` is suitable for financial values where decimal precision is important.
+
+Example:
+
+```text
+1000000.00
+12000000.00
+8500000.00
+```
+
+The CRM displays the value with the Yen symbol:
+
+```text
+¥1000000.00
+```
+
+---
+
+## Opportunity Probability
+
+The probability of winning the Opportunity is stored using:
+
+```python
+probability = models.PositiveIntegerField(default=0)
+```
+
+Example values:
+
+```text
+10%
+25%
+50%
+75%
+100%
+```
+
+At the current stage of the CRM, **Stage and Probability are independent fields**.
+
+For example:
+
+```text
+Stage: Qualification
+Probability: 25%
+```
+
+The user manually enters the probability.
+
+The system does not yet automatically assign a probability based on the selected sales stage.
+
+---
+
+## Expected Close Date
+
+The expected closing date uses:
+
+```python
+expected_close_date = models.DateField(
+    blank=True,
+    null=True
+)
+```
+
+This stores a date without a time.
+
+For example:
+
+```text
+2026-10-31
+```
+
+The field is optional because:
+
+```python
+blank=True
+null=True
+```
+
+are enabled.
+
+---
+
+## Create the Opportunity Database Table
+
+After adding the Opportunity model, a new migration was created:
+
+```powershell
+python manage.py makemigrations
+```
+
+Django generated a migration similar to:
+
+```text
+crm/migrations/0003_opportunity.py
+```
+
+The migration was then applied:
+
+```powershell
+python manage.py migrate
+```
+
+The SQLite database now contains the main CRM entities:
+
+```text
+db.sqlite3
+│
+├── crm_customer
+├── crm_contact
+└── crm_opportunity
+```
+
+The standard Django model workflow remains:
+
+```text
+Change models.py
+       ↓
+makemigrations
+       ↓
+Migration File
+       ↓
+migrate
+       ↓
+Database Updated
+```
+
+---
+
+## Register Opportunity in Django Admin
+
+The Opportunity model was registered in:
+
+```text
+crm/admin.py
+```
+
+The model import was updated:
+
+```python
+from .models import Contact, Customer, Opportunity
+```
+
+The Opportunity Admin configuration was added:
+
+```python
+@admin.register(Opportunity)
+class OpportunityAdmin(admin.ModelAdmin):
+
+    list_display = (
+        "name",
+        "customer",
+        "stage",
+        "amount",
+        "probability",
+        "expected_close_date",
+    )
+
+    list_filter = (
+        "stage",
+    )
+
+    search_fields = (
+        "name",
+        "customer__name",
+        "description",
+    )
+```
+
+A new Django Admin feature introduced here is:
+
+```python
+list_filter = (
+    "stage",
+)
+```
+
+This allows Opportunities to be filtered by:
+
+```text
+Lead
+Qualification
+Proposal
+Negotiation
+Closed Won
+Closed Lost
+```
+
+The Django Admin now manages:
+
+```text
+CRM
+│
+├── Customers
+├── Contacts
+└── Opportunities
+```
+
+[⬆ Back to Table of Contents](#table-of-contents)
+
+---
+
+# 87. Opportunity Management
+
+After creating the Opportunity database model, full Opportunity CRUD functionality was added to the custom CRM interface.
+
+The Opportunity module now supports:
+
+```text
+Opportunities
+│
+├── Create
+├── List
+├── Detail
+├── Update
+└── Delete
+```
+
+---
+
+## Create `OpportunityForm`
+
+The model imports in:
+
+```text
+crm/forms.py
+```
+
+were updated:
+
+```python
+from .models import Contact, Customer, Opportunity
+```
+
+The following ModelForm was added:
+
+```python
+class OpportunityForm(forms.ModelForm):
+
+    class Meta:
+        model = Opportunity
+
+        fields = [
+            "customer",
+            "name",
+            "stage",
+            "amount",
+            "probability",
+            "expected_close_date",
+            "description",
+        ]
+
+        widgets = {
+            "expected_close_date": forms.DateInput(
+                attrs={
+                    "type": "date",
+                }
+            ),
+
+            "description": forms.Textarea(
+                attrs={
+                    "rows": 4,
+                }
+            ),
+        }
+```
+
+Because `stage` uses model choices, Django automatically creates a dropdown containing:
+
+```text
+Lead
+Qualification
+Proposal
+Negotiation
+Closed Won
+Closed Lost
+```
+
+Because `customer` is a ForeignKey, Django automatically creates a Customer dropdown.
+
+The form therefore resembles:
+
+```text
+Customer
+[ Kumamoto Tech ▼ ]
+
+Opportunity Name
+[ ABC Opportunity ]
+
+Stage
+[ Qualification ▼ ]
+
+Amount
+[ 1000000 ]
+
+Probability
+[ 25 ]
+
+Expected Close Date
+[ 2026-10-31 ]
+
+Description
+[ ... ]
+```
+
+---
+
+## Date Input Widget
+
+The expected close date uses:
+
+```python
+forms.DateInput(
+    attrs={
+        "type": "date",
+    }
+)
+```
+
+This tells the browser to display a date input control.
+
+Instead of manually typing arbitrary date text, the browser can provide a date selector.
+
+---
+
+## Opportunity List
+
+The Opportunity List view retrieves Opportunities and their related Customers:
+
+```python
+opportunities = Opportunity.objects.select_related(
+    "customer"
+).order_by(
+    "-created_at"
+)
+```
+
+The use of:
+
+```python
+select_related("customer")
+```
+
+efficiently retrieves the related Customer because each Opportunity contains a ForeignKey to Customer.
+
+The Opportunity table displays:
+
+```text
+Opportunity
+Customer
+Stage
+Amount
+Probability
+Expected Close
+```
+
+For example:
+
+```text
+Opportunity       Customer        Stage           Amount        Probability
+--------------------------------------------------------------------------
+ABC Opportunity   Kumamoto Tech   Qualification   ¥1000000.00   25%
+```
+
+---
+
+## Display the Stage Name
+
+The database stores values such as:
+
+```text
+qualification
+proposal
+negotiation
+won
+lost
+```
+
+However, the application should display the human-readable value.
+
+Django automatically provides:
+
+```django
+{{ opportunity.get_stage_display }}
+```
+
+For example:
+
+```text
+Database:
+qualification
+
+Display:
+Qualification
+```
+
+Another example:
+
+```text
+Database:
+won
+
+Display:
+Closed Won
+```
+
+Django provides this functionality automatically for model fields using `choices`.
+
+---
+
+## Create Opportunity
+
+The Opportunity Create view uses:
+
+```python
+OpportunityForm(request.POST)
+```
+
+to process submitted data.
+
+The workflow is:
+
+```text
+GET /opportunities/add/
+        ↓
+Create Empty OpportunityForm
+        ↓
+Display Form
+        ↓
+User Enters Opportunity
+        ↓
+POST
+        ↓
+Validate Form
+        ↓
+form.save()
+        ↓
+Opportunity Created
+        ↓
+Redirect to Opportunity Detail
+```
+
+After saving:
+
+```python
+opportunity = form.save()
+```
+
+the application redirects using the new Opportunity primary key:
+
+```python
+return redirect(
+    "opportunity_detail",
+    pk=opportunity.pk
+)
+```
+
+---
+
+## Opportunity Detail
+
+Each Opportunity has its own detail page:
+
+```text
+/opportunities/<pk>/
+```
+
+For example:
+
+```text
+/opportunities/1/
+```
+
+The page displays:
+
+```text
+ABC Opportunity
+
+Customer              Kumamoto Tech
+Stage                 Qualification
+Amount                ¥1000000.00
+Probability           25%
+Expected Close Date   Oct. 31, 2026
+Description           ...
+```
+
+The related Customer name links back to the Customer Detail page:
+
+```django
+<a href="{% url 'customer_detail' opportunity.customer.pk %}">
+    {{ opportunity.customer.name }}
+</a>
+```
+
+This creates navigation between the related CRM entities:
+
+```text
+Opportunity
+     ↓
+Customer
+     ↓
+Customer Detail
+```
+
+---
+
+## Edit Opportunity
+
+The Opportunity Update view retrieves the existing Opportunity and passes it into the form:
+
+```python
+form = OpportunityForm(
+    instance=opportunity
+)
+```
+
+When the form is submitted:
+
+```python
+form = OpportunityForm(
+    request.POST,
+    instance=opportunity
+)
+```
+
+The important part is:
+
+```python
+instance=opportunity
+```
+
+This tells Django:
+
+```text
+Update this existing Opportunity
+```
+
+instead of:
+
+```text
+Create another Opportunity
+```
+
+The update flow is:
+
+```text
+Existing Opportunity
+        ↓
+OpportunityForm(instance=opportunity)
+        ↓
+Display Existing Values
+        ↓
+User Changes Values
+        ↓
+POST
+        ↓
+Validate
+        ↓
+Save
+        ↓
+Existing Opportunity Updated
+```
+
+---
+
+## Delete Opportunity
+
+Opportunity deletion follows the same safe pattern previously used for Customers and Contacts.
+
+Opening the Delete page performs a:
+
+```text
+GET
+```
+
+and displays a confirmation page.
+
+The actual deletion requires:
+
+```text
+POST
+```
+
+The form contains:
+
+```django
+{% csrf_token %}
+```
+
+The process is:
+
+```text
+Opportunity Detail
+        ↓
+Delete Opportunity
+        ↓
+Confirmation Page
+        ↓
+Confirm Delete
+        ↓
+POST Request
+        ↓
+opportunity.delete()
+        ↓
+Redirect to Opportunity List
+```
+
+---
+
+## Opportunity URL Architecture
+
+The Opportunity routes were added to:
+
+```text
+crm/urls.py
+```
+
+```python
+path(
+    "opportunities/",
+    views.opportunity_list,
+    name="opportunity_list"
+),
+
+path(
+    "opportunities/add/",
+    views.opportunity_create,
+    name="opportunity_create"
+),
+
+path(
+    "opportunities/<int:pk>/",
+    views.opportunity_detail,
+    name="opportunity_detail"
+),
+
+path(
+    "opportunities/<int:pk>/edit/",
+    views.opportunity_update,
+    name="opportunity_update"
+),
+
+path(
+    "opportunities/<int:pk>/delete/",
+    views.opportunity_delete,
+    name="opportunity_delete"
+),
+```
+
+The CRM now has three parallel areas:
+
+```text
+CUSTOMERS
+
+/customers/
+/customers/add/
+/customers/<pk>/
+/customers/<pk>/edit/
+/customers/<pk>/delete/
+
+
+CONTACTS
+
+/contacts/
+/contacts/add/
+/contacts/<pk>/
+/contacts/<pk>/edit/
+/contacts/<pk>/delete/
+
+
+OPPORTUNITIES
+
+/opportunities/
+/opportunities/add/
+/opportunities/<pk>/
+/opportunities/<pk>/edit/
+/opportunities/<pk>/delete/
+```
+
+---
+
+## Display Opportunities on Customer Detail
+
+The Customer Detail page was extended to show Opportunities belonging to the Customer.
+
+Because the Opportunity ForeignKey contains:
+
+```python
+related_name="opportunities"
+```
+
+the template can use:
+
+```django
+customer.opportunities.all
+```
+
+For example:
+
+```django
+{% for opportunity in customer.opportunities.all %}
+
+    {{ opportunity.name }}
+    {{ opportunity.get_stage_display }}
+    {{ opportunity.amount }}
+    {{ opportunity.probability }}
+
+{% endfor %}
+```
+
+The Customer Detail page can therefore show:
+
+```text
+Kumamoto Tech
+
+CONTACTS
+--------------------------------
+John Tan
+Yuki Sato
+
+
+OPPORTUNITIES
+---------------------------------------------------------
+ABC Opportunity
+Qualification
+¥1000000.00
+25%
+Oct. 31, 2026
+```
+
+The Customer page is becoming the central location for related CRM information:
+
+```text
+                     Customer
+                        │
+             ┌──────────┴──────────┐
+             │                     │
+             ↓                     ↓
+          Contacts            Opportunities
+```
+
+---
+
+## Dashboard Integration
+
+The Dashboard was updated to count:
+
+```python
+customer_count = Customer.objects.count()
+contact_count = Contact.objects.count()
+opportunity_count = Opportunity.objects.count()
+```
+
+These values are sent through the context:
+
+```python
+context = {
+    "customer_count": customer_count,
+    "contact_count": contact_count,
+    "opportunity_count": opportunity_count,
+    "recent_customers": recent_customers,
+}
+```
+
+The Dashboard can now display actual database counts for:
+
+```text
+Customers
+Contacts
+Opportunities
+```
+
+instead of placeholder values.
+
+The Dashboard therefore connects to all three main CRM models:
+
+```text
+                 Dashboard
+                     │
+        ┌────────────┼────────────┐
+        ↓            ↓            ↓
+    Customers     Contacts    Opportunities
+```
+
+[⬆ Back to Table of Contents](#table-of-contents)
+
+---
+
+# 88. Sales Pipeline
+
+Day 6 also introduces the first version of the CRM **Sales Pipeline**.
+
+An Opportunity moves through different stages during the sales process:
+
+```text
+Lead
+  ↓
+Qualification
+  ↓
+Proposal
+  ↓
+Negotiation
+  ↓
+ ┌───────────────┐
+ ↓               ↓
+Closed Won    Closed Lost
+```
+
+These stages correspond directly to the values defined in:
+
+```python
+STAGE_CHOICES
+```
+
+---
+
+## Pipeline Stage Counts
+
+The Opportunity List view calculates the number of Opportunities in each stage.
+
+For example:
+
+```python
+lead_count = opportunities.filter(
+    stage="lead"
+).count()
+
+qualification_count = opportunities.filter(
+    stage="qualification"
+).count()
+
+proposal_count = opportunities.filter(
+    stage="proposal"
+).count()
+
+negotiation_count = opportunities.filter(
+    stage="negotiation"
+).count()
+
+won_count = opportunities.filter(
+    stage="won"
+).count()
+
+lost_count = opportunities.filter(
+    stage="lost"
+).count()
+```
+
+The logic is:
+
+```text
+All Opportunities
+        ↓
+Filter by Stage
+        ↓
+Count Matching Records
+        ↓
+Display Pipeline Number
+```
+
+For example:
+
+```python
+opportunities.filter(
+    stage="qualification"
+).count()
+```
+
+means:
+
+```text
+Find all Opportunities
+        ↓
+Keep only Stage = Qualification
+        ↓
+Count them
+```
+
+---
+
+## Send Pipeline Data to the Template
+
+The calculated values are passed to the template through the Django context:
+
+```python
+context = {
+    "opportunities": opportunities,
+    "lead_count": lead_count,
+    "qualification_count": qualification_count,
+    "proposal_count": proposal_count,
+    "negotiation_count": negotiation_count,
+    "won_count": won_count,
+    "lost_count": lost_count,
+}
+```
+
+This allows the template to access values such as:
+
+```django
+{{ lead_count }}
+
+{{ qualification_count }}
+
+{{ proposal_count }}
+
+{{ negotiation_count }}
+
+{{ won_count }}
+
+{{ lost_count }}
+```
+
+---
+
+## Display Pipeline Cards
+
+The Opportunity List page contains a pipeline summary:
+
+```django
+<div class="pipeline-summary">
+
+    <div class="pipeline-card">
+        <h3>Lead</h3>
+
+        <div class="pipeline-number">
+            {{ lead_count }}
+        </div>
+    </div>
+
+    <div class="pipeline-card">
+        <h3>Qualification</h3>
+
+        <div class="pipeline-number">
+            {{ qualification_count }}
+        </div>
+    </div>
+
+    <div class="pipeline-card">
+        <h3>Proposal</h3>
+
+        <div class="pipeline-number">
+            {{ proposal_count }}
+        </div>
+    </div>
+
+    <div class="pipeline-card">
+        <h3>Negotiation</h3>
+
+        <div class="pipeline-number">
+            {{ negotiation_count }}
+        </div>
+    </div>
+
+    <div class="pipeline-card">
+        <h3>Closed Won</h3>
+
+        <div class="pipeline-number">
+            {{ won_count }}
+        </div>
+    </div>
+
+    <div class="pipeline-card">
+        <h3>Closed Lost</h3>
+
+        <div class="pipeline-number">
+            {{ lost_count }}
+        </div>
+    </div>
+
+</div>
+```
+
+For example, if the database contains one Opportunity:
+
+```text
+ABC Opportunity
+
+Stage:
+Qualification
+```
+
+the pipeline displays:
+
+```text
+Lead             0
+
+Qualification    1
+
+Proposal         0
+
+Negotiation      0
+
+Closed Won       0
+
+Closed Lost      0
+```
+
+If another Opportunity is moved from:
+
+```text
+Qualification
+```
+
+to:
+
+```text
+Proposal
+```
+
+the pipeline counts automatically change based on the database records.
+
+---
+
+## Stage, Pipeline, and Amount
+
+The relationship between Opportunity Stage, Pipeline and Amount is:
+
+```text
+                   Opportunity
+                        │
+             ┌──────────┼──────────┐
+             ↓          ↓          ↓
+           Stage      Amount   Probability
+             │
+             ↓
+        Sales Pipeline
+```
+
+For example:
+
+```text
+ABC Opportunity
+│
+├── Customer: Kumamoto Tech
+├── Stage: Qualification
+├── Amount: ¥1,000,000
+├── Probability: 25%
+└── Expected Close: 2026-10-31
+```
+
+The Opportunity appears in:
+
+```text
+Qualification
+```
+
+because its database stage is:
+
+```text
+qualification
+```
+
+The Amount belongs to the Opportunity itself:
+
+```text
+¥1,000,000
+```
+
+At the current Day 6 implementation, the pipeline cards show the **number of Opportunities in each stage**.
+
+They do not yet calculate the total sales Amount for each stage.
+
+For example, the current version provides:
+
+```text
+Qualification
+1
+```
+
+rather than:
+
+```text
+Qualification
+1 Opportunity
+¥1,000,000
+```
+
+Pipeline value aggregation can be added as a future improvement.
+
+---
+
+## Sales Pipeline CSS
+
+The pipeline layout uses CSS Grid:
+
+```css
+.pipeline-summary {
+    display: grid;
+
+    grid-template-columns:
+        repeat(auto-fit, minmax(140px, 1fr));
+
+    gap: 15px;
+
+    margin: 25px 0;
+}
+```
+
+Each pipeline stage is displayed using:
+
+```css
+.pipeline-card {
+    background: white;
+
+    padding: 20px;
+
+    border-radius: 8px;
+
+    border: 1px solid #e5e7eb;
+
+    text-align: center;
+}
+```
+
+The pipeline count uses:
+
+```css
+.pipeline-number {
+    font-size: 28px;
+
+    font-weight: bold;
+
+    margin-top: 10px;
+}
+```
+
+This creates a responsive pipeline summary containing:
+
+```text
+Lead | Qualification | Proposal | Negotiation | Closed Won | Closed Lost
+```
+
+---
+
+## Day 6 CRM Data Model
+
+After Day 6, the core database relationship is:
+
+```text
+                         Customer
+                            │
+              ┌─────────────┴─────────────┐
+              │                           │
+              ↓                           ↓
+           Contact                   Opportunity
+                                          │
+                             ┌────────────┼─────────────┐
+                             ↓            ↓             ↓
+                           Stage        Amount      Probability
+                             │
+                             ↓
+                       Sales Pipeline
+```
+
+In database terms:
+
+```text
+crm_customer
+     │
+     ├─────────────── crm_contact
+     │
+     └─────────────── crm_opportunity
+```
+
+Both Contact and Opportunity contain a ForeignKey to Customer.
+
+---
+
+## Day 6 CRM Architecture
+
+The application now contains:
+
+```text
+                         My CRM
+                           │
+        ┌──────────────────┼──────────────────┐
+        │                  │                  │
+        ↓                  ↓                  ↓
+    Customers           Contacts        Opportunities
+        │                  │                  │
+        │                  │                  ↓
+        │                  │             Sales Pipeline
+        │                  │
+        └──────────────────┴──────────────────┐
+                                              ↓
+                                           Dashboard
+```
+
+The Opportunity request flow follows the standard Django architecture:
+
+```text
+Browser
+   ↓
+crm/urls.py
+   ↓
+views.py
+   ↓
+Django ORM
+   ↓
+Opportunity Model
+   ↓
+SQLite
+   ↓
+Template
+   ↓
+Browser
+```
+
+---
+
+## Day 6 Project Status
+
+The CRM now supports:
+
+```text
+CRM
+│
+├── Dashboard
+│   ├── Customer Count            ✅
+│   ├── Contact Count             ✅
+│   └── Opportunity Count         ✅
+│
+├── Customers
+│   ├── Create                    ✅
+│   ├── List                      ✅
+│   ├── Detail                    ✅
+│   ├── Edit                      ✅
+│   ├── Delete                    ✅
+│   ├── Search                    ✅
+│   └── Pagination                ✅
+│
+├── Contacts
+│   ├── Customer Relationship     ✅
+│   ├── Create                    ✅
+│   ├── List                      ✅
+│   ├── Detail                    ✅
+│   ├── Edit                      ✅
+│   └── Delete                    ✅
+│
+└── Opportunities
+    ├── Customer Relationship     ✅
+    ├── Create                    ✅
+    ├── List                      ✅
+    ├── Detail                    ✅
+    ├── Edit                      ✅
+    ├── Delete                    ✅
+    ├── Sales Stage               ✅
+    ├── Amount                    ✅
+    ├── Probability               ✅
+    ├── Expected Close Date       ✅
+    └── Sales Pipeline            ✅
+```
+
+New Django concepts introduced during Day 6:
+
+```text
+Model choices                    ✅
+DecimalField                     ✅
+PositiveIntegerField             ✅
+DateField                        ✅
+get_<field>_display              ✅
+Admin list_filter                ✅
+Opportunity ForeignKey           ✅
+Reverse Opportunity Relationship ✅
+Pipeline Filtering               ✅
+Pipeline Counting                ✅
+Dashboard Model Counts           ✅
+```
+
+The development progression is now:
+
+```text
+Day 1
+Django Setup + Dashboard
+        ↓
+Day 2
+Customer List + Create
+        ↓
+Day 3
+Customer CRUD
+        ↓
+Day 4
+Customer Search + Pagination
+        ↓
+Day 5
+Contacts + Customer Relationships
+        ↓
+Day 6
+Opportunities + Sales Pipeline
+```
+
+The CRM has now moved beyond basic CRUD and contains the beginning of an actual **sales management workflow**.
+
+[⬆ Back to Table of Contents](#table-of-contents)
+
+---
