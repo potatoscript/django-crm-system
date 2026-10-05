@@ -1,5 +1,11 @@
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import (
+    DecimalField,
+    ExpressionWrapper,
+    F,
+    Q,
+    Sum,
+)
 from django.shortcuts import get_object_or_404, redirect,render
 from .models import Contact, Customer, Opportunity
 from .forms import ContactForm, CustomerForm, OpportunityForm
@@ -291,14 +297,86 @@ def opportunity_list(request):
         stage="lost"
     ).count()
 
+    lead_amount = opportunities.filter(
+        stage="lead"
+    ).aggregate(
+        total=Sum("amount")
+    )["total"] or 0
+
+    open_pipeline = opportunities.exclude(
+        stage__in=["won", "lost"]
+    )
+
+    open_pipeline_amount = open_pipeline.aggregate(
+        total=Sum("amount")
+    )["total"] or 0
+
+    weighted_expression = ExpressionWrapper(
+        F("amount") * F("probability") / 100,
+        output_field=DecimalField(
+            max_digits=15,
+            decimal_places=2
+        )
+    )
+
+    weighted_forecast = open_pipeline.aggregate(
+        total=Sum(weighted_expression)
+    )["total"] or 0
+
+    qualification_amount = opportunities.filter(
+        stage="qualification"
+    ).aggregate(
+        total=Sum("amount")
+    )["total"] or 0
+
+
+    proposal_amount = opportunities.filter(
+        stage="proposal"
+    ).aggregate(
+        total=Sum("amount")
+    )["total"] or 0
+
+
+    negotiation_amount = opportunities.filter(
+        stage="negotiation"
+    ).aggregate(
+        total=Sum("amount")
+    )["total"] or 0
+
+
+    won_amount = opportunities.filter(
+        stage="won"
+    ).aggregate(
+        total=Sum("amount")
+    )["total"] or 0
+
+
+    lost_amount = opportunities.filter(
+        stage="lost"
+    ).aggregate(
+        total=Sum("amount")
+    )["total"] or 0
+
+
     context = {
         "opportunities": opportunities,
+
         "lead_count": lead_count,
         "qualification_count": qualification_count,
         "proposal_count": proposal_count,
         "negotiation_count": negotiation_count,
         "won_count": won_count,
         "lost_count": lost_count,
+
+        "lead_amount": lead_amount,
+        "qualification_amount": qualification_amount,
+        "proposal_amount": proposal_amount,
+        "negotiation_amount": negotiation_amount,
+        "won_amount": won_amount,
+        "lost_amount": lost_amount,
+
+        "open_pipeline_amount": open_pipeline_amount,
+        "weighted_forecast": weighted_forecast,
     }
 
     return render(

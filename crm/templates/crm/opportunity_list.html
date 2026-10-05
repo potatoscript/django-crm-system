@@ -34,44 +34,93 @@ Opportunities
         <div class="pipeline-number">
             {{ lead_count }}
         </div>
+        <div class="pipeline-amount">
+            ¥{{ lead_amount }}
+        </div>
     </div>
+
 
     <div class="pipeline-card">
         <h3>Qualification</h3>
         <div class="pipeline-number">
             {{ qualification_count }}
         </div>
+        <div class="pipeline-amount">
+            ¥{{ qualification_amount }}
+        </div>
     </div>
+
 
     <div class="pipeline-card">
         <h3>Proposal</h3>
         <div class="pipeline-number">
             {{ proposal_count }}
         </div>
+        <div class="pipeline-amount">
+            ¥{{ proposal_amount }}
+        </div>
     </div>
+
 
     <div class="pipeline-card">
         <h3>Negotiation</h3>
         <div class="pipeline-number">
             {{ negotiation_count }}
         </div>
+        <div class="pipeline-amount">
+            ¥{{ negotiation_amount }}
+        </div>
     </div>
+
 
     <div class="pipeline-card">
         <h3>Closed Won</h3>
         <div class="pipeline-number">
             {{ won_count }}
         </div>
+        <div class="pipeline-amount">
+            ¥{{ won_amount }}
+        </div>
     </div>
+
 
     <div class="pipeline-card">
         <h3>Closed Lost</h3>
         <div class="pipeline-number">
             {{ lost_count }}
         </div>
+        <div class="pipeline-amount">
+            ¥{{ lost_amount }}
+        </div>
     </div>
 
 </div>
+
+<div class="pipeline-totals">
+
+    <div class="summary-card">
+
+        <h3>Open Pipeline</h3>
+
+        <div class="summary-value">
+            ¥{{ open_pipeline_amount }}
+        </div>
+
+    </div>
+
+
+    <div class="summary-card">
+
+        <h3>Weighted Forecast</h3>
+
+        <div class="summary-value">
+            ¥{{ weighted_forecast }}
+        </div>
+
+    </div>
+
+</div>
+
 
 <div class="table-container">
 
