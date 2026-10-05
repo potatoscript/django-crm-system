@@ -129,6 +129,11 @@ The system will eventually provide:
 87. [Opportunity Management](#87-opportunity-management)  
 88. [Sales Pipeline](#88-sales-pipeline)
 
+
+## Day 7 — Sales Pipeline Value and Forecast
+
+89. [Sales Pipeline Value and Forecast](#89-sales-pipeline-value-and-forecast)
+
 ---
 
 
@@ -7962,6 +7967,1276 @@ Opportunities + Sales Pipeline
 ```
 
 The CRM has now moved beyond basic CRUD and contains the beginning of an actual **sales management workflow**.
+
+[⬆ Back to Table of Contents](#table-of-contents)
+
+---
+
+# Day 7 — Sales Pipeline Value and Forecast
+
+Day 7 improves the Sales Pipeline created on Day 6.
+
+Previously, the pipeline displayed only the **number of Opportunities** in each sales stage.
+
+For example:
+
+```text
+Lead             0
+Qualification    1
+Proposal         0
+Negotiation      0
+Closed Won       0
+Closed Lost      0
+```
+
+This tells us how many Opportunities exist, but it does not tell us how much those Opportunities are worth.
+
+Day 7 extends the pipeline so that it can also calculate:
+
+- Total Opportunity Amount for each sales stage
+- Total Open Pipeline value
+- Weighted Sales Forecast
+
+The pipeline can now represent both the **number of deals** and their **financial value**.
+
+For example:
+
+```text
+Lead
+0
+¥0
+
+Qualification
+1
+¥1,000,000
+
+Proposal
+0
+¥0
+
+Negotiation
+0
+¥0
+
+Closed Won
+0
+¥0
+
+Closed Lost
+0
+¥0
+```
+
+The CRM also calculates:
+
+```text
+Open Pipeline
+¥1,000,000
+
+Weighted Forecast
+¥10,000
+```
+
+if the Opportunity has:
+
+```text
+Amount:      ¥1,000,000
+Probability: 1%
+```
+
+---
+
+# 89. Sales Pipeline Value and Forecast
+
+## Pipeline Stage Amounts
+
+The Day 6 Sales Pipeline counted Opportunities using:
+
+```python
+qualification_count = opportunities.filter(
+    stage="qualification"
+).count()
+```
+
+This answers:
+
+```text
+How many Opportunities are in Qualification?
+```
+
+For example:
+
+```text
+Qualification
+1
+```
+
+Day 7 adds financial aggregation so that the CRM can also answer:
+
+```text
+What is the total value of Opportunities in Qualification?
+```
+
+For example:
+
+```text
+Qualification
+
+1 Opportunity
+¥1,000,000
+```
+
+---
+
+## Import Django `Sum`
+
+The following Django ORM imports are used in:
+
+```text
+crm/views.py
+```
+
+```python
+from django.db.models import (
+    DecimalField,
+    ExpressionWrapper,
+    F,
+    Q,
+    Sum,
+)
+```
+
+The new concepts introduced during Day 7 include:
+
+```text
+Sum
+F
+ExpressionWrapper
+DecimalField
+aggregate()
+exclude()
+__in
+```
+
+`Sum` is used to calculate the total of a database field.
+
+For example:
+
+```python
+Sum("amount")
+```
+
+means:
+
+```text
+Add together the values stored in the amount field.
+```
+
+---
+
+## Calculate Amount for Each Pipeline Stage
+
+The CRM calculates the total Opportunity Amount for each sales stage.
+
+For Lead:
+
+```python
+lead_amount = opportunities.filter(
+    stage="lead"
+).aggregate(
+    total=Sum("amount")
+)["total"] or 0
+```
+
+For Qualification:
+
+```python
+qualification_amount = opportunities.filter(
+    stage="qualification"
+).aggregate(
+    total=Sum("amount")
+)["total"] or 0
+```
+
+For Proposal:
+
+```python
+proposal_amount = opportunities.filter(
+    stage="proposal"
+).aggregate(
+    total=Sum("amount")
+)["total"] or 0
+```
+
+For Negotiation:
+
+```python
+negotiation_amount = opportunities.filter(
+    stage="negotiation"
+).aggregate(
+    total=Sum("amount")
+)["total"] or 0
+```
+
+For Closed Won:
+
+```python
+won_amount = opportunities.filter(
+    stage="won"
+).aggregate(
+    total=Sum("amount")
+)["total"] or 0
+```
+
+For Closed Lost:
+
+```python
+lost_amount = opportunities.filter(
+    stage="lost"
+).aggregate(
+    total=Sum("amount")
+)["total"] or 0
+```
+
+The basic calculation process is:
+
+```text
+All Opportunities
+        ↓
+Filter by Stage
+        ↓
+Select Amount
+        ↓
+Sum the Amounts
+        ↓
+Total Stage Value
+```
+
+For example:
+
+```text
+Proposal Opportunities
+
+Opportunity A     ¥2,000,000
+Opportunity B     ¥5,000,000
+Opportunity C     ¥3,000,000
+                  -----------
+Total             ¥10,000,000
+```
+
+The ORM performs this using:
+
+```python
+.aggregate(
+    total=Sum("amount")
+)
+```
+
+---
+
+## Understanding `aggregate()`
+
+`aggregate()` calculates a value from a collection of database records.
+
+For example:
+
+```python
+opportunities.filter(
+    stage="proposal"
+).aggregate(
+    total=Sum("amount")
+)
+```
+
+can return something conceptually similar to:
+
+```python
+{
+    "total": 10000000
+}
+```
+
+The value is retrieved using:
+
+```python
+["total"]
+```
+
+Therefore:
+
+```python
+proposal_amount = opportunities.filter(
+    stage="proposal"
+).aggregate(
+    total=Sum("amount")
+)["total"]
+```
+
+retrieves the calculated total.
+
+---
+
+## Why `or 0` Is Used
+
+If there are no Opportunities in a particular stage, `Sum()` can return:
+
+```python
+None
+```
+
+For example:
+
+```text
+Closed Lost
+
+No Opportunities
+```
+
+could result in:
+
+```python
+{
+    "total": None
+}
+```
+
+The code therefore uses:
+
+```python
+["total"] or 0
+```
+
+For example:
+
+```python
+lost_amount = opportunities.filter(
+    stage="lost"
+).aggregate(
+    total=Sum("amount")
+)["total"] or 0
+```
+
+This changes an empty total from:
+
+```text
+None
+```
+
+to:
+
+```text
+0
+```
+
+so the interface can display:
+
+```text
+Closed Lost
+0
+¥0
+```
+
+instead of an empty value.
+
+---
+
+## Send Pipeline Amounts to the Template
+
+The calculated amounts are passed from:
+
+```text
+crm/views.py
+```
+
+to the template through the Django context.
+
+```python
+context = {
+    "opportunities": opportunities,
+
+    "lead_count": lead_count,
+    "qualification_count": qualification_count,
+    "proposal_count": proposal_count,
+    "negotiation_count": negotiation_count,
+    "won_count": won_count,
+    "lost_count": lost_count,
+
+    "lead_amount": lead_amount,
+    "qualification_amount": qualification_amount,
+    "proposal_amount": proposal_amount,
+    "negotiation_amount": negotiation_amount,
+    "won_amount": won_amount,
+    "lost_amount": lost_amount,
+
+    "open_pipeline_amount": open_pipeline_amount,
+    "weighted_forecast": weighted_forecast,
+}
+```
+
+The data flow is:
+
+```text
+SQLite
+   ↓
+Opportunity Model
+   ↓
+Django ORM
+   ↓
+filter()
+   ↓
+aggregate()
+   ↓
+Sum("amount")
+   ↓
+views.py
+   ↓
+context
+   ↓
+opportunity_list.html
+```
+
+---
+
+## Display Amounts on Pipeline Cards
+
+The pipeline cards in:
+
+```text
+crm/templates/crm/opportunity_list.html
+```
+
+were updated to display both:
+
+```text
+Opportunity Count
++
+Opportunity Amount
+```
+
+For example:
+
+```django
+<div class="pipeline-card">
+
+    <h3>Qualification</h3>
+
+    <div class="pipeline-number">
+        {{ qualification_count }}
+    </div>
+
+    <div class="pipeline-amount">
+        ¥{{ qualification_amount }}
+    </div>
+
+</div>
+```
+
+The complete pipeline now displays information such as:
+
+```text
+Lead
+0
+¥0
+
+Qualification
+1
+¥1000000.00
+
+Proposal
+0
+¥0
+
+Negotiation
+0
+¥0
+
+Closed Won
+0
+¥0
+
+Closed Lost
+0
+¥0
+```
+
+The relationship is therefore:
+
+```text
+Opportunity
+     │
+     ├── Stage
+     │     ↓
+     │   Pipeline
+     │
+     └── Amount
+           ↓
+      Pipeline Value
+```
+
+---
+
+## Pipeline Amount Styling
+
+The pipeline amount was styled in:
+
+```text
+crm/templates/crm/base.html
+```
+
+using:
+
+```css
+.pipeline-amount {
+    margin-top: 8px;
+    font-size: 14px;
+    color: #666;
+}
+```
+
+The visual structure of each card is now:
+
+```text
+┌──────────────────────┐
+│    Qualification     │
+│                      │
+│          1           │
+│                      │
+│     ¥1000000.00      │
+└──────────────────────┘
+```
+
+---
+
+## Open Pipeline
+
+The next improvement was calculating the value of all Opportunities that are still active.
+
+The CRM currently has six stages:
+
+```text
+Lead
+Qualification
+Proposal
+Negotiation
+Closed Won
+Closed Lost
+```
+
+The first four represent active Opportunities:
+
+```text
+Lead
+Qualification
+Proposal
+Negotiation
+```
+
+The final two represent completed Opportunities:
+
+```text
+Closed Won
+Closed Lost
+```
+
+Therefore, Open Pipeline should exclude:
+
+```text
+Closed Won
+Closed Lost
+```
+
+This is done using:
+
+```python
+open_pipeline = opportunities.exclude(
+    stage__in=["won", "lost"]
+)
+```
+
+---
+
+## Understanding `exclude()`
+
+Django's:
+
+```python
+filter()
+```
+
+keeps records matching a condition.
+
+For example:
+
+```python
+opportunities.filter(
+    stage="proposal"
+)
+```
+
+means:
+
+```text
+Keep Proposal Opportunities
+```
+
+By comparison:
+
+```python
+exclude()
+```
+
+removes records matching a condition.
+
+Therefore:
+
+```python
+opportunities.exclude(
+    stage__in=["won", "lost"]
+)
+```
+
+means:
+
+```text
+All Opportunities
+        ↓
+Remove Closed Won
+        ↓
+Remove Closed Lost
+        ↓
+Open Opportunities
+```
+
+---
+
+## Understanding `__in`
+
+The following condition:
+
+```python
+stage__in=["won", "lost"]
+```
+
+means:
+
+```text
+Stage is contained in:
+
+[
+    "won",
+    "lost"
+]
+```
+
+In other words:
+
+```text
+stage = won
+OR
+stage = lost
+```
+
+Combining it with `exclude()` means:
+
+```text
+Exclude Stage = Won
+OR
+Exclude Stage = Lost
+```
+
+leaving:
+
+```text
+Lead
+Qualification
+Proposal
+Negotiation
+```
+
+---
+
+## Calculate Open Pipeline Amount
+
+After retrieving the open Opportunities:
+
+```python
+open_pipeline = opportunities.exclude(
+    stage__in=["won", "lost"]
+)
+```
+
+their Amounts are added together:
+
+```python
+open_pipeline_amount = open_pipeline.aggregate(
+    total=Sum("amount")
+)["total"] or 0
+```
+
+For example:
+
+```text
+Lead             ¥3,000,000
+Qualification    ¥1,000,000
+Proposal         ¥10,000,000
+Negotiation      ¥5,000,000
+                 -----------
+Open Pipeline    ¥19,000,000
+```
+
+Closed Opportunities are not included:
+
+```text
+Closed Won       Excluded
+Closed Lost      Excluded
+```
+
+The Open Pipeline therefore represents the current potential value of active sales Opportunities.
+
+---
+
+## Weighted Sales Forecast
+
+Day 7 also introduces a basic weighted sales forecast.
+
+An Opportunity's full Amount does not necessarily represent the amount that is likely to be won.
+
+For example:
+
+```text
+Opportunity A
+
+Amount:      ¥10,000,000
+Probability: 20%
+```
+
+has a weighted value of:
+
+```text
+¥10,000,000 × 20%
+
+= ¥2,000,000
+```
+
+Another Opportunity:
+
+```text
+Opportunity B
+
+Amount:      ¥10,000,000
+Probability: 80%
+```
+
+has a weighted value of:
+
+```text
+¥10,000,000 × 80%
+
+= ¥8,000,000
+```
+
+Although both Opportunities have the same Amount, Opportunity B contributes more to the weighted forecast because it has a higher probability.
+
+The basic formula is:
+
+```text
+Weighted Value
+=
+Opportunity Amount × Probability ÷ 100
+```
+
+---
+
+## Using Django `F()` Expressions
+
+The weighted calculation uses:
+
+```python
+F("amount")
+```
+
+and:
+
+```python
+F("probability")
+```
+
+An `F()` expression refers directly to a database field.
+
+Therefore:
+
+```python
+F("amount") * F("probability") / 100
+```
+
+means:
+
+```text
+Current Opportunity Amount
+             ×
+Current Opportunity Probability
+             ÷
+            100
+```
+
+For example:
+
+```text
+Amount:      ¥1,000,000
+Probability: 25%
+```
+
+becomes:
+
+```text
+1,000,000 × 25 ÷ 100
+
+= ¥250,000
+```
+
+This calculation can be performed by the database rather than manually retrieving each Opportunity and calculating it in Python.
+
+---
+
+## Using `ExpressionWrapper`
+
+The weighted calculation is defined as:
+
+```python
+weighted_expression = ExpressionWrapper(
+    F("amount") * F("probability") / 100,
+    output_field=DecimalField(
+        max_digits=15,
+        decimal_places=2
+    )
+)
+```
+
+`ExpressionWrapper` allows Django to understand the result of the database calculation.
+
+The calculation:
+
+```python
+F("amount") * F("probability") / 100
+```
+
+produces a financial value.
+
+The output type is therefore defined as:
+
+```python
+DecimalField(
+    max_digits=15,
+    decimal_places=2
+)
+```
+
+Conceptually:
+
+```text
+amount
+   │
+   ├──────────┐
+   │          │
+   ↓          ↓
+¥1,000,000   probability
+                25
+   │            │
+   └─────┬──────┘
+         ↓
+     Multiply
+         ↓
+     Divide 100
+         ↓
+      ¥250,000
+```
+
+---
+
+## Calculate the Weighted Forecast
+
+The weighted expression is applied to all Open Pipeline Opportunities:
+
+```python
+weighted_forecast = open_pipeline.aggregate(
+    total=Sum(weighted_expression)
+)["total"] or 0
+```
+
+For example:
+
+```text
+Opportunity A
+¥3,000,000 × 10%
+= ¥300,000
+
+
+Opportunity B
+¥1,000,000 × 25%
+= ¥250,000
+
+
+Opportunity C
+¥10,000,000 × 50%
+= ¥5,000,000
+
+
+Opportunity D
+¥5,000,000 × 75%
+= ¥3,750,000
+```
+
+The total weighted forecast becomes:
+
+```text
+¥300,000
++ ¥250,000
++ ¥5,000,000
++ ¥3,750,000
+----------------
+¥9,300,000
+```
+
+The CRM therefore distinguishes between:
+
+```text
+Open Pipeline
+¥19,000,000
+
+Weighted Forecast
+¥9,300,000
+```
+
+The first number represents the full potential value of active Opportunities.
+
+The second number adjusts each Opportunity using its probability.
+
+---
+
+## Display Pipeline Totals
+
+The Open Pipeline and Weighted Forecast are displayed in:
+
+```text
+crm/templates/crm/opportunity_list.html
+```
+
+using:
+
+```django
+<div class="pipeline-totals">
+
+    <div class="summary-card">
+
+        <h3>Open Pipeline</h3>
+
+        <div class="summary-value">
+            ¥{{ open_pipeline_amount }}
+        </div>
+
+    </div>
+
+
+    <div class="summary-card">
+
+        <h3>Weighted Forecast</h3>
+
+        <div class="summary-value">
+            ¥{{ weighted_forecast }}
+        </div>
+
+    </div>
+
+</div>
+```
+
+The page structure is now:
+
+```text
+Opportunities
+
+┌──────────────┐
+│ Lead         │
+│ 2            │
+│ ¥3,000,000   │
+└──────────────┘
+
+┌──────────────┐
+│Qualification │
+│ 1            │
+│ ¥1,000,000   │
+└──────────────┘
+
+┌──────────────┐
+│ Proposal     │
+│ 3            │
+│ ¥10,000,000  │
+└──────────────┘
+
+...
+
+
+┌───────────────────────┐
+│ Open Pipeline         │
+│ ¥19,000,000           │
+└───────────────────────┘
+
+┌───────────────────────┐
+│ Weighted Forecast     │
+│ ¥9,300,000            │
+└───────────────────────┘
+
+
+Opportunity List
+------------------------------------------------
+...
+```
+
+---
+
+## Pipeline Summary Styling
+
+The two summary cards were styled in:
+
+```text
+crm/templates/crm/base.html
+```
+
+using:
+
+```css
+.pipeline-totals {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    margin: 20px 0 30px;
+}
+
+
+.summary-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+
+.summary-card h3 {
+    margin-top: 0;
+    color: #666;
+}
+
+
+.summary-value {
+    font-size: 26px;
+    font-weight: bold;
+}
+```
+
+The visual hierarchy is now:
+
+```text
+Sales Stages
+     ↓
+Stage Counts + Stage Amounts
+     ↓
+Open Pipeline
+     ↓
+Weighted Forecast
+     ↓
+Opportunity Table
+```
+
+---
+
+## Example — ABC Opportunity
+
+A useful test Opportunity used during development was:
+
+```text
+Opportunity:
+ABC Opportunity
+
+Customer:
+Kumamoto Tech
+
+Stage:
+Qualification
+
+Amount:
+¥1,000,000
+
+Probability:
+1%
+
+Expected Close:
+Oct. 31, 2026
+```
+
+Because the Stage is:
+
+```text
+Qualification
+```
+
+the pipeline shows:
+
+```text
+Qualification
+
+1
+
+¥1,000,000
+```
+
+Because this is not:
+
+```text
+Closed Won
+```
+
+or:
+
+```text
+Closed Lost
+```
+
+it is included in the Open Pipeline:
+
+```text
+Open Pipeline
+¥1,000,000
+```
+
+Its weighted value is:
+
+```text
+¥1,000,000 × 1 ÷ 100
+
+= ¥10,000
+```
+
+Therefore:
+
+```text
+Weighted Forecast
+¥10,000
+```
+
+This test confirms that the relationship between:
+
+```text
+Stage
+Amount
+Probability
+```
+
+and:
+
+```text
+Pipeline
+Open Pipeline
+Weighted Forecast
+```
+
+is working correctly.
+
+---
+
+## Day 7 Sales Pipeline Architecture
+
+The Opportunity data now flows through several levels of sales analysis:
+
+```text
+                     Opportunity
+                          │
+            ┌─────────────┼─────────────┐
+            ↓             ↓             ↓
+          Stage         Amount      Probability
+            │             │             │
+            ↓             ↓             │
+       Stage Count   Stage Amount       │
+            │             │             │
+            └──────┬──────┘             │
+                   ↓                    │
+             Sales Pipeline             │
+                   │                    │
+                   ↓                    │
+             Open Pipeline ─────────────┘
+                   │
+                   ↓
+           Weighted Forecast
+```
+
+The CRM is no longer only storing Opportunity records.
+
+It is beginning to use those records for sales analysis.
+
+---
+
+## Day 7 Project Status
+
+The Opportunity module now supports:
+
+```text
+Opportunities
+│
+├── Customer Relationship          ✅
+├── Create                         ✅
+├── List                           ✅
+├── Detail                         ✅
+├── Edit                           ✅
+├── Delete                         ✅
+├── Sales Stage                    ✅
+├── Amount                         ✅
+├── Probability                    ✅
+├── Expected Close Date            ✅
+├── Pipeline Deal Count            ✅
+├── Pipeline Stage Amount          ✅
+├── Open Pipeline Value            ✅
+└── Weighted Sales Forecast        ✅
+```
+
+New Django concepts introduced during Day 7:
+
+```text
+Sum()                              ✅
+aggregate()                        ✅
+exclude()                          ✅
+__in lookup                        ✅
+F() expressions                    ✅
+ExpressionWrapper                  ✅
+Calculated database expressions    ✅
+Financial aggregation              ✅
+Weighted forecasting               ✅
+```
+
+The development progression is now:
+
+```text
+Day 1
+Django Setup + Dashboard
+        ↓
+Day 2
+Customer List + Create
+        ↓
+Day 3
+Customer CRUD
+        ↓
+Day 4
+Customer Search + Pagination
+        ↓
+Day 5
+Contacts + Customer Relationships
+        ↓
+Day 6
+Opportunities + Sales Pipeline
+        ↓
+Day 7
+Pipeline Value + Weighted Forecast
+```
+
+The next development stage can build on this by adding **Opportunity Search, Stage Filtering, and Pagination**.
 
 [⬆ Back to Table of Contents](#table-of-contents)
 
