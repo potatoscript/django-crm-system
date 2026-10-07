@@ -267,43 +267,75 @@ def contact_delete(request, pk):
 
 def opportunity_list(request):
 
-    opportunities = Opportunity.objects.select_related(
+    query = request.GET.get("q", "")
+    stage = request.GET.get("stage", "")
+
+    all_opportunities = Opportunity.objects.select_related(
         "customer"
-    ).order_by(
+    )
+
+    opportunities = all_opportunities
+
+    if query:
+        opportunities = opportunities.filter(
+            Q(name__icontains=query)
+            | Q(customer__name__icontains=query)
+            | Q(description__icontains=query)
+        )
+
+    if stage:
+        opportunities = opportunities.filter(
+            stage=stage
+        )
+
+    paginator = Paginator(
+        opportunities,
+        5
+    )
+
+    page_number = request.GET.get(
+        "page"
+    )
+
+    page_obj = paginator.get_page(
+        page_number
+    )
+
+    opportunities = opportunities.order_by(
         "-created_at"
     )
 
-    lead_count = opportunities.filter(
+    lead_count = all_opportunities.filter(
         stage="lead"
     ).count()
 
-    qualification_count = opportunities.filter(
+    qualification_count = all_opportunities.filter(
         stage="qualification"
     ).count()
 
-    proposal_count = opportunities.filter(
+    proposal_count = all_opportunities.filter(
         stage="proposal"
     ).count()
 
-    negotiation_count = opportunities.filter(
+    negotiation_count = all_opportunities.filter(
         stage="negotiation"
     ).count()
 
-    won_count = opportunities.filter(
+    won_count = all_opportunities.filter(
         stage="won"
     ).count()
 
-    lost_count = opportunities.filter(
+    lost_count = all_opportunities.filter(
         stage="lost"
     ).count()
 
-    lead_amount = opportunities.filter(
+    lead_amount = all_opportunities.filter(
         stage="lead"
     ).aggregate(
         total=Sum("amount")
     )["total"] or 0
 
-    open_pipeline = opportunities.exclude(
+    open_pipeline = all_opportunities.exclude(
         stage__in=["won", "lost"]
     )
 
@@ -359,7 +391,8 @@ def opportunity_list(request):
 
 
     context = {
-        "opportunities": opportunities,
+        "opportunities": page_obj,
+        "page_obj": page_obj,
 
         "lead_count": lead_count,
         "qualification_count": qualification_count,
@@ -377,6 +410,9 @@ def opportunity_list(request):
 
         "open_pipeline_amount": open_pipeline_amount,
         "weighted_forecast": weighted_forecast,
+
+        "query": query,
+        "stage": stage,
     }
 
     return render(

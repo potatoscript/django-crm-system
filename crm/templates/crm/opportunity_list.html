@@ -121,6 +121,76 @@ Opportunities
 
 </div>
 
+<form method="get"
+      action="{% url 'opportunity_list' %}"
+      class="opportunity-filter-form">
+
+    <input
+        type="text"
+        name="q"
+        value="{{ query }}"
+        placeholder="Search opportunities..."
+        class="search-input"
+    >
+
+
+    <select name="stage"
+            class="filter-select">
+
+        <option value="">
+            All Stages
+        </option>
+
+        <option value="lead"
+                {% if stage == "lead" %}selected{% endif %}>
+            Lead
+        </option>
+
+        <option value="qualification"
+                {% if stage == "qualification" %}selected{% endif %}>
+            Qualification
+        </option>
+
+        <option value="proposal"
+                {% if stage == "proposal" %}selected{% endif %}>
+            Proposal
+        </option>
+
+        <option value="negotiation"
+                {% if stage == "negotiation" %}selected{% endif %}>
+            Negotiation
+        </option>
+
+        <option value="won"
+                {% if stage == "won" %}selected{% endif %}>
+            Closed Won
+        </option>
+
+        <option value="lost"
+                {% if stage == "lost" %}selected{% endif %}>
+            Closed Lost
+        </option>
+
+    </select>
+
+
+    <button type="submit"
+            class="button">
+        Filter
+    </button>
+
+
+    {% if query or stage %}
+
+        <a href="{% url 'opportunity_list' %}"
+           class="cancel-button">
+            Clear
+        </a>
+
+    {% endif %}
+
+</form>
+
 
 <div class="table-container">
 
@@ -194,5 +264,38 @@ Opportunities
     </table>
 
 </div>
+
+{% if page_obj.paginator.num_pages > 1 %}
+
+    <div class="pagination">
+
+        {% if page_obj.has_previous %}
+
+            <a href="?q={{ query }}&stage={{ stage }}&page={{ page_obj.previous_page_number }}">
+                ← Previous
+            </a>
+
+        {% endif %}
+
+
+        <span class="page-info">
+
+            Page {{ page_obj.number }}
+            of {{ page_obj.paginator.num_pages }}
+
+        </span>
+
+
+        {% if page_obj.has_next %}
+
+            <a href="?q={{ query }}&stage={{ stage }}&page={{ page_obj.next_page_number }}">
+                Next →
+            </a>
+
+        {% endif %}
+
+    </div>
+
+{% endif %}
 
 {% endblock %}
