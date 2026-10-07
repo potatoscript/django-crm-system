@@ -134,6 +134,12 @@ The system will eventually provide:
 
 89. [Sales Pipeline Value and Forecast](#89-sales-pipeline-value-and-forecast)
 
+
+## Day 8 — Opportunity Search, Stage Filtering and Pagination
+
+90. [Opportunity Search and Stage Filtering](#90-opportunity-search-and-stage-filtering)  
+91. [Opportunity Pagination](#91-opportunity-pagination)
+
 ---
 
 
@@ -9237,6 +9243,1479 @@ Pipeline Value + Weighted Forecast
 ```
 
 The next development stage can build on this by adding **Opportunity Search, Stage Filtering, and Pagination**.
+
+[⬆ Back to Table of Contents](#table-of-contents)
+
+---
+
+# Day 8 — Opportunity Search, Stage Filtering and Pagination
+
+Day 8 improves the Opportunity List by making it easier to work with a growing number of sales Opportunities.
+
+The CRM already supported:
+
+```text
+Opportunity CRUD
+        ↓
+Sales Stages
+        ↓
+Pipeline Counts
+        ↓
+Pipeline Amounts
+        ↓
+Open Pipeline
+        ↓
+Weighted Forecast
+```
+
+Day 8 adds:
+
+```text
+Opportunity Search
+        +
+Stage Filtering
+        +
+Pagination
+```
+
+The Opportunity List can now be used more efficiently as the amount of CRM data increases.
+
+For example:
+
+```text
+Search: [ ABC                    ]
+
+Stage:  [ Qualification ▼ ]
+
+[ Filter ] [ Clear ]
+```
+
+The user can search and filter Opportunities while the Sales Pipeline at the top continues to represent the complete Opportunity database.
+
+---
+
+# 90. Opportunity Search and Stage Filtering
+
+## Read Search and Filter Parameters
+
+The Opportunity List view in:
+
+```text
+crm/views.py
+```
+
+now reads two GET parameters:
+
+```python
+query = request.GET.get("q", "")
+stage = request.GET.get("stage", "")
+```
+
+The `q` parameter contains the search text.
+
+For example:
+
+```text
+/opportunities/?q=ABC
+```
+
+produces:
+
+```python
+query = "ABC"
+```
+
+The `stage` parameter contains the selected Opportunity stage.
+
+For example:
+
+```text
+/opportunities/?stage=qualification
+```
+
+produces:
+
+```python
+stage = "qualification"
+```
+
+Both parameters can be used together:
+
+```text
+/opportunities/?q=ABC&stage=qualification
+```
+
+This represents:
+
+```text
+Search:
+ABC
+
+Stage:
+Qualification
+```
+
+---
+
+## Separate Pipeline Data from Table Data
+
+An important architectural improvement was introduced on Day 8.
+
+Previously, the Opportunity List used one QuerySet:
+
+```python
+opportunities
+```
+
+for everything.
+
+However, search and filtering should affect the Opportunity table without changing the overall Sales Pipeline statistics.
+
+The view therefore starts with:
+
+```python
+all_opportunities = Opportunity.objects.select_related(
+    "customer"
+)
+
+opportunities = all_opportunities
+```
+
+These two QuerySets have different responsibilities:
+
+```text
+all_opportunities
+        │
+        ├── Pipeline Counts
+        ├── Pipeline Amounts
+        ├── Open Pipeline
+        └── Weighted Forecast
+
+
+opportunities
+        │
+        ├── Search
+        ├── Stage Filtering
+        ├── Ordering
+        ├── Pagination
+        └── Opportunity Table
+```
+
+This means filtering the table does not incorrectly change the Sales Pipeline summary.
+
+---
+
+## Opportunity Search
+
+Search is applied using Django's `Q` objects:
+
+```python
+if query:
+    opportunities = opportunities.filter(
+        Q(name__icontains=query)
+        | Q(customer__name__icontains=query)
+        | Q(description__icontains=query)
+    )
+```
+
+The search covers:
+
+```text
+Opportunity Name
+Customer Name
+Description
+```
+
+For example:
+
+```text
+Search:
+ABC
+```
+
+can find:
+
+```text
+ABC Opportunity
+```
+
+Searching:
+
+```text
+Kumamoto
+```
+
+can also find an Opportunity belonging to:
+
+```text
+Kumamoto Tech
+```
+
+even when the word `Kumamoto` does not appear in the Opportunity name.
+
+---
+
+## Understanding `Q`
+
+`Q` objects allow more complex database conditions.
+
+For example:
+
+```python
+Q(name__icontains=query)
+| Q(customer__name__icontains=query)
+| Q(description__icontains=query)
+```
+
+The `|` operator means:
+
+```text
+OR
+```
+
+Therefore the search condition means:
+
+```text
+Opportunity Name contains query
+
+OR
+
+Customer Name contains query
+
+OR
+
+Description contains query
+```
+
+Conceptually:
+
+```text
+                Search Query
+                     │
+          ┌──────────┼──────────┐
+          ↓          ↓          ↓
+     Opportunity   Customer   Description
+        Name         Name
+          │          │          │
+          └──────────┼──────────┘
+                     ↓
+               Matching Records
+```
+
+---
+
+## Understanding `icontains`
+
+The lookup:
+
+```python
+__icontains
+```
+
+performs a case-insensitive partial-text search.
+
+For example:
+
+```python
+name__icontains="abc"
+```
+
+can match:
+
+```text
+ABC Opportunity
+abc opportunity
+New ABC Project
+Project for ABC Manufacturing
+```
+
+The user therefore does not need to enter the complete Opportunity name.
+
+---
+
+## Searching Through a ForeignKey
+
+The following lookup:
+
+```python
+customer__name__icontains=query
+```
+
+searches through the relationship between Opportunity and Customer.
+
+Breaking it down:
+
+```text
+customer
+    ↓
+Follow Opportunity.customer ForeignKey
+
+name
+    ↓
+Use Customer.name
+
+icontains
+    ↓
+Perform partial case-insensitive search
+```
+
+Therefore:
+
+```python
+customer__name__icontains="Kumamoto"
+```
+
+can find Opportunities belonging to:
+
+```text
+Kumamoto Tech
+```
+
+This demonstrates how Django ORM queries can follow relationships between models.
+
+---
+
+## Stage Filtering
+
+The selected sales stage is applied using:
+
+```python
+if stage:
+    opportunities = opportunities.filter(
+        stage=stage
+    )
+```
+
+For example:
+
+```text
+stage = qualification
+```
+
+results in:
+
+```python
+opportunities.filter(
+    stage="qualification"
+)
+```
+
+Only Qualification Opportunities are displayed in the table.
+
+Available stages are:
+
+```text
+Lead
+Qualification
+Proposal
+Negotiation
+Closed Won
+Closed Lost
+```
+
+---
+
+## Search and Stage Filtering Together
+
+Search and filtering are applied sequentially:
+
+```text
+All Opportunities
+        ↓
+Search
+        ↓
+Stage Filter
+        ↓
+Order Results
+        ↓
+Display Results
+```
+
+For example:
+
+```text
+Search:
+ABC
+
+Stage:
+Qualification
+```
+
+produces:
+
+```text
+/opportunities/?q=ABC&stage=qualification
+```
+
+The CRM first searches for matching Opportunities and then keeps only records whose stage is:
+
+```text
+Qualification
+```
+
+This allows multiple conditions to be combined without creating separate pages.
+
+---
+
+## Order Filtered Results
+
+After search and stage filtering, Opportunities are ordered using:
+
+```python
+opportunities = opportunities.order_by(
+    "-created_at"
+)
+```
+
+The minus sign:
+
+```text
+-
+```
+
+means descending order.
+
+Therefore:
+
+```python
+"-created_at"
+```
+
+means:
+
+```text
+Newest Opportunity
+        ↓
+Older Opportunity
+        ↓
+Oldest Opportunity
+```
+
+---
+
+## Keep Pipeline Calculations Independent
+
+Pipeline calculations now use:
+
+```python
+all_opportunities
+```
+
+instead of the filtered:
+
+```python
+opportunities
+```
+
+For example:
+
+```python
+lead_count = all_opportunities.filter(
+    stage="lead"
+).count()
+
+qualification_count = all_opportunities.filter(
+    stage="qualification"
+).count()
+
+proposal_count = all_opportunities.filter(
+    stage="proposal"
+).count()
+
+negotiation_count = all_opportunities.filter(
+    stage="negotiation"
+).count()
+
+won_count = all_opportunities.filter(
+    stage="won"
+).count()
+
+lost_count = all_opportunities.filter(
+    stage="lost"
+).count()
+```
+
+The same principle is used for Pipeline Amounts:
+
+```python
+lead_amount = all_opportunities.filter(
+    stage="lead"
+).aggregate(
+    total=Sum("amount")
+)["total"] or 0
+```
+
+and the other stages.
+
+The Open Pipeline also uses:
+
+```python
+open_pipeline = all_opportunities.exclude(
+    stage__in=["won", "lost"]
+)
+```
+
+This separation is important.
+
+If the user selects:
+
+```text
+Stage:
+Proposal
+```
+
+the Opportunity table shows only Proposal Opportunities.
+
+However, the top Sales Pipeline still displays the complete business pipeline:
+
+```text
+Lead
+Qualification
+Proposal
+Negotiation
+Closed Won
+Closed Lost
+```
+
+The architecture is:
+
+```text
+                 Opportunity Database
+                         │
+                         ↓
+                 all_opportunities
+                         │
+              ┌──────────┴──────────┐
+              │                     │
+              ↓                     ↓
+        Sales Analysis        Table QuerySet
+              │                     │
+        Pipeline Counts            Search
+        Pipeline Amounts             ↓
+        Open Pipeline          Stage Filter
+        Forecast                     ↓
+                                 Ordering
+                                     ↓
+                                   Table
+```
+
+---
+
+## Send Search State to the Template
+
+The current search and stage values are passed through the context:
+
+```python
+context = {
+    "opportunities": opportunities,
+
+    "query": query,
+    "stage": stage,
+
+    # other context values...
+}
+```
+
+This allows the HTML template to remember what the user entered.
+
+For example:
+
+```django
+value="{{ query }}"
+```
+
+keeps the search text inside the search box.
+
+Likewise:
+
+```django
+{% if stage == "qualification" %}selected{% endif %}
+```
+
+keeps Qualification selected in the dropdown.
+
+---
+
+## Opportunity Search and Filter Form
+
+The following form was added to:
+
+```text
+crm/templates/crm/opportunity_list.html
+```
+
+```django
+<form method="get"
+      action="{% url 'opportunity_list' %}"
+      class="opportunity-filter-form">
+
+    <input
+        type="text"
+        name="q"
+        value="{{ query }}"
+        placeholder="Search opportunities..."
+        class="search-input"
+    >
+
+
+    <select name="stage"
+            class="filter-select">
+
+        <option value="">
+            All Stages
+        </option>
+
+        <option value="lead"
+                {% if stage == "lead" %}selected{% endif %}>
+            Lead
+        </option>
+
+        <option value="qualification"
+                {% if stage == "qualification" %}selected{% endif %}>
+            Qualification
+        </option>
+
+        <option value="proposal"
+                {% if stage == "proposal" %}selected{% endif %}>
+            Proposal
+        </option>
+
+        <option value="negotiation"
+                {% if stage == "negotiation" %}selected{% endif %}>
+            Negotiation
+        </option>
+
+        <option value="won"
+                {% if stage == "won" %}selected{% endif %}>
+            Closed Won
+        </option>
+
+        <option value="lost"
+                {% if stage == "lost" %}selected{% endif %}>
+            Closed Lost
+        </option>
+
+    </select>
+
+
+    <button type="submit"
+            class="button">
+        Filter
+    </button>
+
+
+    {% if query or stage %}
+
+        <a href="{% url 'opportunity_list' %}"
+           class="cancel-button">
+            Clear
+        </a>
+
+    {% endif %}
+
+</form>
+```
+
+The form uses:
+
+```html
+method="get"
+```
+
+because searching and filtering do not modify database data.
+
+Instead, they control which data is displayed.
+
+---
+
+## Why Search Uses GET Instead of POST
+
+Creating or editing data normally uses:
+
+```text
+POST
+```
+
+because the database is being changed.
+
+Searching uses:
+
+```text
+GET
+```
+
+because the database is not being changed.
+
+For example:
+
+```text
+GET
+
+/opportunities/?q=ABC&stage=qualification
+```
+
+simply asks:
+
+```text
+Show me Opportunities matching these conditions.
+```
+
+This also makes search/filter state visible in the URL.
+
+---
+
+## Clear Search and Filter
+
+The Clear link is displayed only when:
+
+```django
+{% if query or stage %}
+```
+
+is true.
+
+The link points to:
+
+```django
+{% url 'opportunity_list' %}
+```
+
+without any query parameters.
+
+Therefore:
+
+```text
+/opportunities/?q=ABC&stage=qualification
+```
+
+becomes:
+
+```text
+/opportunities/
+```
+
+and the full Opportunity List is displayed again.
+
+---
+
+## Search and Filter Styling
+
+The search/filter area was styled in:
+
+```text
+crm/templates/crm/base.html
+```
+
+using:
+
+```css
+.opportunity-filter-form {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 25px 0;
+}
+
+
+.filter-select {
+    padding: 10px 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    background: white;
+    font-size: 15px;
+}
+```
+
+The existing Customer Search styling can also be reused for:
+
+```css
+.search-input
+```
+
+The resulting interface is approximately:
+
+```text
+[ Search opportunities... ] [ All Stages ▼ ] [ Filter ] [ Clear ]
+```
+
+[⬆ Back to Table of Contents](#table-of-contents)
+
+---
+
+# 91. Opportunity Pagination
+
+As the CRM grows, displaying every Opportunity on one page becomes inefficient.
+
+Day 8 therefore adds pagination to the Opportunity List.
+
+The application displays:
+
+```text
+5 Opportunities per page
+```
+
+using Django's built-in:
+
+```python
+Paginator
+```
+
+---
+
+## Import `Paginator`
+
+In:
+
+```text
+crm/views.py
+```
+
+the following import is used:
+
+```python
+from django.core.paginator import Paginator
+```
+
+This was already introduced during Customer Pagination on Day 4 and is now reused for Opportunities.
+
+---
+
+## Create the Opportunity Paginator
+
+After search, filtering and ordering:
+
+```python
+opportunities = opportunities.order_by(
+    "-created_at"
+)
+```
+
+the QuerySet is passed into:
+
+```python
+paginator = Paginator(
+    opportunities,
+    5
+)
+```
+
+The number:
+
+```text
+5
+```
+
+means:
+
+```text
+Maximum 5 Opportunities per page
+```
+
+For example, if there are 12 matching Opportunities:
+
+```text
+Page 1 → Opportunities 1–5
+
+Page 2 → Opportunities 6–10
+
+Page 3 → Opportunities 11–12
+```
+
+---
+
+## Read the Requested Page Number
+
+The page number is retrieved from the URL:
+
+```python
+page_number = request.GET.get(
+    "page"
+)
+```
+
+For example:
+
+```text
+/opportunities/?page=2
+```
+
+results in:
+
+```text
+page_number = 2
+```
+
+---
+
+## Create `page_obj`
+
+The requested page is retrieved using:
+
+```python
+page_obj = paginator.get_page(
+    page_number
+)
+```
+
+`page_obj` contains both:
+
+```text
+The Opportunities for the current page
+
+and
+
+Pagination information
+```
+
+For example, Django can determine:
+
+```text
+Current Page
+Total Pages
+Previous Page
+Next Page
+Has Previous?
+Has Next?
+```
+
+---
+
+## Send `page_obj` to the Template
+
+The context was changed from:
+
+```python
+"opportunities": opportunities,
+```
+
+to:
+
+```python
+"opportunities": page_obj,
+"page_obj": page_obj,
+```
+
+The existing template can therefore continue using:
+
+```django
+{% for opportunity in opportunities %}
+```
+
+without rewriting the Opportunity table.
+
+At the same time:
+
+```django
+page_obj
+```
+
+is available for pagination controls.
+
+---
+
+## Pagination Request Flow
+
+The Opportunity List now follows this sequence:
+
+```text
+Database
+   ↓
+All Opportunities
+   ↓
+Search
+   ↓
+Stage Filter
+   ↓
+Ordering
+   ↓
+Paginator
+   ↓
+Current Page
+   ↓
+Template
+```
+
+This order is important.
+
+Pagination occurs **after** search and filtering.
+
+For example:
+
+```text
+100 Opportunities
+        ↓
+Search "Project"
+        ↓
+20 matching Opportunities
+        ↓
+Stage = Proposal
+        ↓
+8 matching Opportunities
+        ↓
+Paginator
+        ↓
+Page 1 = 5 records
+Page 2 = 3 records
+```
+
+---
+
+## Pagination Controls
+
+The following pagination controls were added below the Opportunity table:
+
+```django
+{% if page_obj.paginator.num_pages > 1 %}
+
+    <div class="pagination">
+
+        {% if page_obj.has_previous %}
+
+            <a href="?q={{ query }}&stage={{ stage }}&page={{ page_obj.previous_page_number }}">
+                ← Previous
+            </a>
+
+        {% endif %}
+
+
+        <span class="page-info">
+
+            Page {{ page_obj.number }}
+            of {{ page_obj.paginator.num_pages }}
+
+        </span>
+
+
+        {% if page_obj.has_next %}
+
+            <a href="?q={{ query }}&stage={{ stage }}&page={{ page_obj.next_page_number }}">
+                Next →
+            </a>
+
+        {% endif %}
+
+    </div>
+
+{% endif %}
+```
+
+The controls display only when:
+
+```django
+page_obj.paginator.num_pages > 1
+```
+
+Therefore, if there are only three Opportunities:
+
+```text
+3 records
+5 records per page
+```
+
+pagination controls are not necessary and remain hidden.
+
+---
+
+## Understanding `has_previous`
+
+This condition:
+
+```django
+{% if page_obj.has_previous %}
+```
+
+checks whether an earlier page exists.
+
+For example:
+
+```text
+Current Page = 1
+
+Previous Page = None
+```
+
+so:
+
+```text
+← Previous
+```
+
+is not displayed.
+
+On Page 2:
+
+```text
+Current Page = 2
+
+Previous Page = 1
+```
+
+so the Previous link appears.
+
+---
+
+## Understanding `has_next`
+
+This condition:
+
+```django
+{% if page_obj.has_next %}
+```
+
+checks whether another page exists.
+
+For example:
+
+```text
+Page 1 of 3
+```
+
+has a next page.
+
+Therefore:
+
+```text
+Next →
+```
+
+is displayed.
+
+But:
+
+```text
+Page 3 of 3
+```
+
+has no next page, so the Next link disappears.
+
+---
+
+## Preserve Search During Pagination
+
+An important Day 8 improvement is preserving search parameters when changing pages.
+
+The Next link contains:
+
+```django
+?q={{ query }}
+```
+
+For example:
+
+```text
+Search:
+Project
+```
+
+followed by clicking:
+
+```text
+Next →
+```
+
+can produce:
+
+```text
+/opportunities/?q=Project&stage=&page=2
+```
+
+The search therefore remains:
+
+```text
+Project
+```
+
+on Page 2.
+
+Without preserving `q`, clicking Next could accidentally return to the unfiltered Opportunity List.
+
+---
+
+## Preserve Stage Filter During Pagination
+
+The pagination URL also contains:
+
+```django
+&stage={{ stage }}
+```
+
+For example:
+
+```text
+Search:
+Project
+
+Stage:
+Proposal
+
+Page:
+2
+```
+
+produces a URL similar to:
+
+```text
+/opportunities/?q=Project&stage=proposal&page=2
+```
+
+All three pieces of application state are preserved:
+
+```text
+q
+│
+└── Search Text
+
+
+stage
+│
+└── Sales Stage
+
+
+page
+│
+└── Pagination Page
+```
+
+---
+
+## Combining Search, Filtering and Pagination
+
+Day 8 demonstrates how several GET parameters can work together.
+
+Example:
+
+```text
+/opportunities/?q=Project&stage=proposal&page=2
+```
+
+can be understood as:
+
+```text
+q=Project
+     ↓
+Search for Project
+
+
+stage=proposal
+     ↓
+Only Proposal Opportunities
+
+
+page=2
+     ↓
+Display second page
+```
+
+The processing flow becomes:
+
+```text
+                   HTTP GET
+                      │
+                      ↓
+           q / stage / page
+                      │
+                      ↓
+              Opportunity ORM
+                      │
+                Search with Q
+                      │
+                      ↓
+                Stage Filter
+                      │
+                      ↓
+                   Order
+                      │
+                      ↓
+                 Paginator
+                      │
+                      ↓
+                  page_obj
+                      │
+                      ↓
+                   Template
+```
+
+---
+
+## Final `opportunity_list()` Architecture
+
+After Day 8, the Opportunity List view performs several different responsibilities in a defined order:
+
+```text
+1. Read Search Parameters
+          ↓
+2. Retrieve All Opportunities
+          ↓
+3. Create Table QuerySet
+          ↓
+4. Apply Search
+          ↓
+5. Apply Stage Filter
+          ↓
+6. Order Results
+          ↓
+7. Paginate Results
+          ↓
+8. Calculate Pipeline Counts
+          ↓
+9. Calculate Pipeline Amounts
+          ↓
+10. Calculate Open Pipeline
+          ↓
+11. Calculate Weighted Forecast
+          ↓
+12. Build Context
+          ↓
+13. Render Template
+```
+
+Two logical data paths now exist:
+
+```text
+                      Opportunity
+                          │
+                          ↓
+                  all_opportunities
+                          │
+              ┌───────────┴───────────┐
+              │                       │
+              ↓                       ↓
+        SALES ANALYSIS            TABLE DATA
+              │                       │
+        Stage Counts                Search
+        Stage Amounts                 ↓
+        Open Pipeline            Stage Filter
+        Weighted Forecast             ↓
+                                  Ordering
+                                      ↓
+                                  Pagination
+                                      ↓
+                                  page_obj
+                                      ↓
+                                    Table
+```
+
+This separation prevents user interface filters from accidentally changing overall pipeline statistics.
+
+---
+
+## Day 8 Opportunity Module Status
+
+The Opportunity module now supports:
+
+```text
+Opportunities
+│
+├── Customer Relationship          ✅
+├── Create                         ✅
+├── List                           ✅
+├── Detail                         ✅
+├── Edit                           ✅
+├── Delete                         ✅
+│
+├── Sales Management
+│   ├── Sales Stage                ✅
+│   ├── Amount                     ✅
+│   ├── Probability                ✅
+│   └── Expected Close Date        ✅
+│
+├── Pipeline Analysis
+│   ├── Stage Counts               ✅
+│   ├── Stage Amounts              ✅
+│   ├── Open Pipeline              ✅
+│   └── Weighted Forecast          ✅
+│
+└── Opportunity List Tools
+    ├── Search by Opportunity      ✅
+    ├── Search by Customer         ✅
+    ├── Search by Description      ✅
+    ├── Stage Filtering            ✅
+    ├── Combined Search + Filter   ✅
+    ├── Pagination                 ✅
+    └── Preserve Filters by Page   ✅
+```
+
+---
+
+## Django Concepts Reinforced on Day 8
+
+Day 8 reused and combined several Django concepts:
+
+```text
+request.GET                     ✅
+Q objects                       ✅
+icontains                       ✅
+ForeignKey relationship lookup  ✅
+filter()                        ✅
+order_by()                      ✅
+select_related()                ✅
+Paginator                       ✅
+page_obj                        ✅
+Template conditions             ✅
+GET query parameters            ✅
+```
+
+The important new architectural concept was separating:
+
+```text
+Global analytical data
+```
+
+from:
+
+```text
+User-filtered table data
+```
+
+using:
+
+```python
+all_opportunities
+```
+
+and:
+
+```python
+opportunities
+```
+
+respectively.
+
+---
+
+## Development Progress
+
+The CRM development progression is now:
+
+```text
+Day 1
+Django Setup + Dashboard
+        ↓
+Day 2
+Customer List + Create
+        ↓
+Day 3
+Customer CRUD
+        ↓
+Day 4
+Customer Search + Pagination
+        ↓
+Day 5
+Contacts + Customer Relationships
+        ↓
+Day 6
+Opportunities + Sales Pipeline
+        ↓
+Day 7
+Pipeline Value + Weighted Forecast
+        ↓
+Day 8
+Opportunity Search
++ Stage Filtering
++ Pagination
+```
+
+The Opportunity module has now progressed from basic CRUD into a much more practical sales-management interface.
 
 [⬆ Back to Table of Contents](#table-of-contents)
 
