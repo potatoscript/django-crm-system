@@ -140,6 +140,12 @@ The system will eventually provide:
 90. [Opportunity Search and Stage Filtering](#90-opportunity-search-and-stage-filtering)  
 91. [Opportunity Pagination](#91-opportunity-pagination)
 
+
+## Day 9 — Opportunity Validation and Sales Probability Automation
+
+92. [Opportunity Data Validation](#92-opportunity-data-validation)
+93. [Automatic Sales Probability](#93-automatic-sales-probability)
+
 ---
 
 
@@ -10720,3 +10726,1626 @@ The Opportunity module has now progressed from basic CRUD into a much more pract
 [⬆ Back to Table of Contents](#table-of-contents)
 
 ---
+
+---
+
+# Day 9 — Opportunity Validation and Sales Probability Automation
+
+Day 9 focuses on improving the **accuracy, reliability, and usability** of the Opportunity Management module.
+
+In previous development stages, the CRM already supported:
+
+- Customer and Contact Management
+- Opportunity CRUD operations
+- Sales Pipeline Management
+- Pipeline Amounts and Weighted Forecast
+- Opportunity Search and Stage Filtering
+- Opportunity Pagination
+
+However, the Opportunity form still had two important limitations:
+
+1. Users could potentially enter unrealistic probability values, such as 150%.
+2. Users had to manually enter a probability whenever they created or updated an Opportunity.
+
+Day 9 addresses these limitations by introducing **Django data validation** and **JavaScript-based automatic probability suggestions**.
+
+The main objectives are:
+
+```text
+Opportunity Form
+       │
+       ├── Validate Amount
+       │       └── Amount >= 0
+       │
+       ├── Validate Probability
+       │       └── 0% to 100%
+       │
+       └── Automatically Suggest Probability
+               │
+               ├── Lead          → 10%
+               ├── Qualification → 25%
+               ├── Proposal      → 50%
+               ├── Negotiation   → 75%
+               ├── Closed Won    → 100%
+               └── Closed Lost   → 0%
+```
+
+The automatic probability is a suggestion rather than a mandatory value. Users can still manually adjust the probability based on their assessment of the Opportunity.
+
+---
+
+# 92. Opportunity Data Validation
+
+## 92.1 Introduction to Data Validation
+
+Data validation ensures that information entered into the CRM follows predefined business rules.
+
+For example, consider the following Opportunity:
+
+```text
+Opportunity Name: ABC Opportunity
+Customer: Kumamoto Tech
+Stage: Qualification
+Amount: ¥1,000,000
+Probability: 150%
+```
+
+The probability is invalid because a probability cannot exceed 100%.
+
+Similarly:
+
+```text
+Amount: -¥500,000
+```
+
+is not a valid sales Opportunity Amount under our current CRM rules.
+
+Day 9 introduces validation to prevent these values from being accepted through the Django form.
+
+The validation rules are:
+
+| Field | Validation Rule |
+|---|---|
+| Opportunity Name | Required |
+| Customer | Required |
+| Stage | Must match an available stage |
+| Amount | Must be greater than or equal to zero |
+| Probability | Must be between 0 and 100 |
+| Expected Close Date | Optional |
+| Description | Optional |
+
+---
+
+## 92.2 Import Django Validators
+
+**File:**
+
+```text
+crm/models.py
+```
+
+The following imports were added:
+
+```python
+from django.core.validators import (
+    MinValueValidator,
+    MaxValueValidator,
+)
+
+from decimal import Decimal
+```
+
+Django provides built-in validators that can be attached directly to model fields.
+
+### MinValueValidator
+
+```python
+MinValueValidator(0)
+```
+
+This specifies the minimum acceptable value.
+
+For example:
+
+```text
+-10  → Invalid
+  0  → Valid
+ 25  → Valid
+```
+
+### MaxValueValidator
+
+```python
+MaxValueValidator(100)
+```
+
+This specifies the maximum acceptable value.
+
+For example:
+
+```text
+ 50  → Valid
+100  → Valid
+150  → Invalid
+```
+
+These validators can be combined to establish an acceptable numerical range.
+
+---
+
+## 92.3 Update the Opportunity Model
+
+**File:**
+
+```text
+crm/models.py
+```
+
+The existing Opportunity model already included:
+
+```python
+amount = models.DecimalField(
+    max_digits=15,
+    decimal_places=2,
+    default=0
+)
+
+probability = models.PositiveIntegerField(
+    default=0
+)
+```
+
+These fields were updated to include validation rules.
+
+### Updated Amount Field
+
+```python
+amount = models.DecimalField(
+    max_digits=15,
+    decimal_places=2,
+    default=0,
+    validators=[
+        MinValueValidator(Decimal("0.00"))
+    ]
+)
+```
+
+The amount must now be greater than or equal to zero when Django model validation runs.
+
+For example:
+
+```text
+Amount = ¥1,000,000    Valid
+
+Amount = ¥0            Valid
+
+Amount = -¥500         Invalid
+```
+
+### Updated Probability Field
+
+```python
+probability = models.PositiveIntegerField(
+    default=0,
+    validators=[
+        MinValueValidator(0),
+        MaxValueValidator(100),
+    ]
+)
+```
+
+The probability must be between 0 and 100.
+
+For example:
+
+```text
+Probability = 0%       Valid
+
+Probability = 25%      Valid
+
+Probability = 75%      Valid
+
+Probability = 100%     Valid
+
+Probability = 150%     Invalid
+```
+
+The acceptable range can be expressed as:
+
+```text
+0 <= Probability <= 100
+```
+
+These model validators are used by Django's model validation process and ModelForms. Direct model saves do not automatically call `full_clean()`.
+
+---
+
+## 92.4 Understanding DecimalField
+
+The Opportunity Amount uses:
+
+```python
+models.DecimalField(
+    max_digits=15,
+    decimal_places=2
+)
+```
+
+This field is appropriate for storing decimal financial values.
+
+The parameters mean:
+
+```text
+max_digits = 15
+```
+
+A maximum of 15 digits in total.
+
+```text
+decimal_places = 2
+```
+
+Two digits after the decimal point.
+
+For example:
+
+```text
+1000000.00
+```
+
+represents:
+
+```text
+¥1,000,000.00
+```
+
+The validation uses:
+
+```python
+Decimal("0.00")
+```
+
+rather than a floating-point value.
+
+Python's `Decimal` type is designed for decimal arithmetic, making it suitable for monetary calculations.
+
+---
+
+## 92.5 Add Form-Level Validation
+
+**File:**
+
+```text
+crm/forms.py
+```
+
+Django ModelForms support custom validation methods.
+
+The Opportunity form already contains:
+
+```python
+class OpportunityForm(forms.ModelForm):
+```
+
+Day 9 adds two methods:
+
+```python
+clean_probability()
+```
+
+and:
+
+```python
+clean_amount()
+```
+
+### Validate Probability
+
+```python
+def clean_probability(self):
+    probability = self.cleaned_data["probability"]
+
+    if not 0 <= probability <= 100:
+        raise forms.ValidationError(
+            "Probability must be between 0 and 100."
+        )
+
+    return probability
+```
+
+This method checks whether the submitted probability is within the acceptable range.
+
+For example:
+
+```text
+User enters:
+150
+
+        ↓
+
+Django validates the input
+
+        ↓
+
+150 > 100
+
+        ↓
+
+ValidationError
+
+        ↓
+
+Opportunity is not saved
+```
+
+The user receives the error message:
+
+```text
+Probability must be between 0 and 100.
+```
+
+### Validate Amount
+
+```python
+def clean_amount(self):
+    amount = self.cleaned_data["amount"]
+
+    if amount < 0:
+        raise forms.ValidationError(
+            "Amount cannot be negative."
+        )
+
+    return amount
+```
+
+This checks whether the submitted Amount is negative.
+
+For example:
+
+```text
+User enters:
+-500
+
+        ↓
+
+Django validates Amount
+
+        ↓
+
+Amount < 0
+
+        ↓
+
+ValidationError
+
+        ↓
+
+Opportunity is not saved
+```
+
+The error message is:
+
+```text
+Amount cannot be negative.
+```
+
+---
+
+## 92.6 Understanding cleaned_data
+
+Django stores validated and converted form values in:
+
+```python
+self.cleaned_data
+```
+
+For example:
+
+```python
+probability = self.cleaned_data["probability"]
+```
+
+retrieves the probability submitted through the form.
+
+Similarly:
+
+```python
+amount = self.cleaned_data["amount"]
+```
+
+retrieves the submitted Amount.
+
+The data has already passed Django's basic field conversion and validation before the corresponding custom field-cleaning method runs.
+
+The process is:
+
+```text
+HTML Form
+    │
+    ↓
+User Input
+    │
+    ↓
+Django Form Field Validation
+    │
+    ↓
+cleaned_data
+    │
+    ↓
+Custom clean_<field>() Method
+    │
+    ├── Valid
+    │      ↓
+    │   Continue Processing
+    │
+    └── Invalid
+           ↓
+       ValidationError
+```
+
+---
+
+## 92.7 Understanding ValidationError
+
+Django provides:
+
+```python
+forms.ValidationError
+```
+
+to indicate invalid form data.
+
+For example:
+
+```python
+raise forms.ValidationError(
+    "Amount cannot be negative."
+)
+```
+
+When a validation error occurs, the form becomes invalid.
+
+In a typical Django create or update view:
+
+```python
+if form.is_valid():
+    form.save()
+```
+
+the `form.save()` operation is skipped when validation fails.
+
+This helps prevent invalid Opportunity data from being saved through the form.
+
+---
+
+## 92.8 Model Validation vs Form Validation
+
+Day 9 introduces validation at two levels.
+
+### Model-Level Validation
+
+Defined in:
+
+```text
+crm/models.py
+```
+
+Example:
+
+```python
+validators=[
+    MinValueValidator(0),
+    MaxValueValidator(100),
+]
+```
+
+This establishes validation rules on the model field.
+
+### Form-Level Validation
+
+Defined in:
+
+```text
+crm/forms.py
+```
+
+Example:
+
+```python
+def clean_probability(self):
+```
+
+This provides custom form-specific validation behavior and error messages.
+
+The overall process is:
+
+```text
+Opportunity Form
+       │
+       ↓
+Django Field Validation
+       │
+       ↓
+Custom Form Validation
+       │
+       ↓
+Model Validation
+       │
+       ↓
+Valid Data?
+       │
+   ┌───┴────┐
+   │        │
+  Yes       No
+   │        │
+   ↓        ↓
+ Save     Show Error
+```
+
+Both validation levels contribute to maintaining data quality.
+
+---
+
+## 92.9 Database Migration
+
+After updating the model, the following commands were used:
+
+```powershell
+python manage.py makemigrations
+```
+
+and, if a migration was generated:
+
+```powershell
+python manage.py migrate
+```
+
+`makemigrations` checks whether the model definitions have changed in a way that requires a migration.
+
+`migrate` applies pending migrations to the database.
+
+Depending on Django's detected model changes, validator updates may or may not produce a new migration.
+
+No new database table was required for Day 9.
+
+---
+
+## 92.10 Validation Testing
+
+The Opportunity Create page is available at:
+
+```text
+http://127.0.0.1:8000/opportunities/add/
+```
+
+The following test cases were defined:
+
+| Test | Amount | Probability | Expected Result |
+|---|---:|---:|---|
+| 1 | 1,000,000 | 25 | Accepted |
+| 2 | -500 | 50 | Rejected |
+| 3 | 1,000,000 | 150 | Rejected |
+| 4 | 0 | 0 | Accepted |
+| 5 | 1,000,000 | 100 | Accepted |
+
+These tests verify the intended validation behavior.
+
+The browser may also reject invalid number inputs before they reach Django, but server-side validation remains important.
+
+---
+
+## 92.11 Benefits of Data Validation
+
+The new validation rules improve the CRM by:
+
+- Preventing unrealistic probability values
+- Preventing negative Opportunity Amounts
+- Providing clear error messages
+- Improving the quality of stored sales data
+- Reducing incorrect weighted forecast calculations
+
+For example, without validation:
+
+```text
+Amount: ¥1,000,000
+
+Probability: 150%
+
+Weighted Value: ¥1,500,000
+```
+
+This is unrealistic because the weighted value exceeds the full Opportunity Amount.
+
+With validation:
+
+```text
+Probability must be between 0 and 100.
+```
+
+The invalid value is rejected before saving through the form.
+
+[⬆ Back to Table of Contents](#table-of-contents)
+
+---
+
+# 93. Automatic Sales Probability
+
+## 93.1 Introduction
+
+Day 9 also introduces automatic probability suggestions based on Opportunity stages.
+
+Previously, users had to enter both:
+
+```text
+Stage
+```
+
+and:
+
+```text
+Probability
+```
+
+manually.
+
+For example:
+
+```text
+Stage: Proposal
+
+Probability: 50
+```
+
+The CRM now helps by suggesting a probability automatically whenever the user changes the Stage dropdown.
+
+This reduces repetitive data entry and encourages consistent probability estimates.
+
+The suggested values are:
+
+| Opportunity Stage | Suggested Probability |
+|---|---:|
+| Lead | 10% |
+| Qualification | 25% |
+| Proposal | 50% |
+| Negotiation | 75% |
+| Closed Won | 100% |
+| Closed Lost | 0% |
+
+These values are illustrative business rules for the learning project, not universal sales forecasting standards.
+
+---
+
+## 93.2 Create Stage Probability Mapping
+
+**File:**
+
+```text
+crm/models.py
+```
+
+Inside the Opportunity model, the existing sales stages are defined using:
+
+```python
+STAGE_CHOICES = [
+    ("lead", "Lead"),
+    ("qualification", "Qualification"),
+    ("proposal", "Proposal"),
+    ("negotiation", "Negotiation"),
+    ("won", "Closed Won"),
+    ("lost", "Closed Lost"),
+]
+```
+
+Day 9 introduces an additional dictionary:
+
+```python
+STAGE_PROBABILITIES = {
+    "lead": 10,
+    "qualification": 25,
+    "proposal": 50,
+    "negotiation": 75,
+    "won": 100,
+    "lost": 0,
+}
+```
+
+This dictionary maps each stage to a suggested probability.
+
+For example:
+
+```python
+STAGE_PROBABILITIES["proposal"]
+```
+
+returns:
+
+```python
+50
+```
+
+Similarly:
+
+```python
+STAGE_PROBABILITIES["negotiation"]
+```
+
+returns:
+
+```python
+75
+```
+
+The dictionary acts as a central Python definition of the suggested sales probabilities.
+
+The browser-side JavaScript currently uses a matching mapping defined separately.
+
+---
+
+## 93.3 Understanding Python Dictionaries
+
+A Python dictionary stores information using:
+
+```text
+Key : Value
+```
+
+For example:
+
+```python
+{
+    "proposal": 50
+}
+```
+
+Here:
+
+```text
+Key:
+proposal
+```
+
+and:
+
+```text
+Value:
+50
+```
+
+The mapping can be visualized as:
+
+```text
+Stage                Probability
+--------------------------------
+lead                 10
+qualification        25
+proposal             50
+negotiation          75
+won                  100
+lost                 0
+```
+
+This structure is useful when one value needs to be associated with another.
+
+---
+
+## 93.4 Add JavaScript to the Opportunity Form
+
+**File:**
+
+```text
+crm/templates/crm/opportunity_form.html
+```
+
+JavaScript was added near the bottom of the template, before the final:
+
+```django
+{% endblock %}
+```
+
+The code is:
+
+```html
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const stageField = document.getElementById("id_stage");
+    const probabilityField = document.getElementById("id_probability");
+
+    const stageProbabilities = {
+        lead: 10,
+        qualification: 25,
+        proposal: 50,
+        negotiation: 75,
+        won: 100,
+        lost: 0
+    };
+
+    if (!stageField || !probabilityField) {
+        return;
+    }
+
+    stageField.addEventListener("change", function () {
+
+        const selectedStage = stageField.value;
+
+        if (
+            Object.prototype.hasOwnProperty.call(
+                stageProbabilities,
+                selectedStage
+            )
+        ) {
+            probabilityField.value =
+                stageProbabilities[selectedStage];
+        }
+
+    });
+
+});
+</script>
+```
+
+This JavaScript automatically updates the probability input when the user selects a different sales stage.
+
+---
+
+## 93.5 Understanding DOMContentLoaded
+
+The code begins with:
+
+```javascript
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+        // JavaScript logic
+    }
+);
+```
+
+`DOMContentLoaded` is a browser event.
+
+It occurs when the HTML document has been parsed and its DOM structure is ready.
+
+This ensures the script can locate the Stage and Probability form fields.
+
+The process is:
+
+```text
+Browser Loads HTML
+        ↓
+HTML Document Parsed
+        ↓
+DOMContentLoaded Event
+        ↓
+JavaScript Executes
+        ↓
+Find Form Fields
+```
+
+---
+
+## 93.6 Understanding getElementById()
+
+The following code retrieves the Stage dropdown:
+
+```javascript
+const stageField = document.getElementById("id_stage");
+```
+
+The following code retrieves the Probability input:
+
+```javascript
+const probabilityField = document.getElementById("id_probability");
+```
+
+Django's standard ModelForm widgets normally generate field IDs such as:
+
+```html
+<select id="id_stage">
+```
+
+and:
+
+```html
+<input id="id_probability">
+```
+
+JavaScript uses these IDs to access the HTML elements.
+
+Conceptually:
+
+```text
+HTML Stage Dropdown
+        │
+        ↓
+id="id_stage"
+        │
+        ↓
+JavaScript
+        │
+        ↓
+stageField
+```
+
+---
+
+## 93.7 Understanding JavaScript Objects
+
+JavaScript defines the stage probability mapping as:
+
+```javascript
+const stageProbabilities = {
+    lead: 10,
+    qualification: 25,
+    proposal: 50,
+    negotiation: 75,
+    won: 100,
+    lost: 0
+};
+```
+
+This is a JavaScript object containing key-value pairs.
+
+For example:
+
+```javascript
+stageProbabilities["proposal"]
+```
+
+returns:
+
+```javascript
+50
+```
+
+Similarly:
+
+```javascript
+stageProbabilities["won"]
+```
+
+returns:
+
+```javascript
+100
+```
+
+The JavaScript object serves the same basic mapping purpose as the Python dictionary introduced earlier.
+
+---
+
+## 93.8 Detect Stage Changes
+
+The script uses:
+
+```javascript
+stageField.addEventListener("change", function () {
+```
+
+The `change` event occurs when the user selects a different value in the dropdown.
+
+For example:
+
+```text
+Current Stage:
+Qualification
+       ↓
+User Selects:
+Proposal
+       ↓
+Change Event
+       ↓
+JavaScript Executes
+```
+
+The selected value is retrieved using:
+
+```javascript
+const selectedStage = stageField.value;
+```
+
+If the user selects Proposal:
+
+```javascript
+selectedStage = "proposal";
+```
+
+---
+
+## 93.9 Automatically Update Probability
+
+The script checks whether the selected stage exists in the mapping:
+
+```javascript
+Object.prototype.hasOwnProperty.call(
+    stageProbabilities,
+    selectedStage
+)
+```
+
+If the stage exists, the Probability field is updated:
+
+```javascript
+probabilityField.value =
+    stageProbabilities[selectedStage];
+```
+
+For example:
+
+```text
+User Selects:
+Proposal
+       ↓
+selectedStage = "proposal"
+       ↓
+stageProbabilities["proposal"]
+       ↓
+50
+       ↓
+Probability Input = 50
+```
+
+Another example:
+
+```text
+User Selects:
+Negotiation
+       ↓
+selectedStage = "negotiation"
+       ↓
+stageProbabilities["negotiation"]
+       ↓
+75
+       ↓
+Probability Input = 75
+```
+
+This happens immediately in the browser without requiring a page refresh.
+
+---
+
+## 93.10 Manual Probability Override
+
+An important design decision is allowing users to manually change the suggested probability.
+
+For example:
+
+```text
+Stage:
+Proposal
+
+Suggested Probability:
+50%
+```
+
+The salesperson may believe the Opportunity has a higher chance of success.
+
+They can manually change:
+
+```text
+Probability:
+60%
+```
+
+The CRM will save the manually entered value when the form is submitted successfully.
+
+This means the automatic probability is a suggestion rather than a fixed business rule.
+
+The behavior is:
+
+```text
+Select Stage
+      ↓
+Suggest Probability
+      ↓
+User Reviews Suggestion
+      ↓
+Optional Manual Adjustment
+      ↓
+Save Opportunity
+```
+
+---
+
+## 93.11 Preserve Existing Probability During Editing
+
+The JavaScript only updates the Probability field when the Stage dropdown changes.
+
+It does not automatically overwrite the probability when the page first loads.
+
+For example, an existing Opportunity may contain:
+
+```text
+Stage:
+Proposal
+
+Probability:
+60%
+```
+
+When the Edit page opens:
+
+```text
+Stage:
+Proposal
+
+Probability:
+60%
+```
+
+The existing value remains unchanged.
+
+However, if the user changes the Stage to:
+
+```text
+Negotiation
+```
+
+the script suggests:
+
+```text
+75%
+```
+
+The user can then accept or modify this value.
+
+This behavior avoids unintentionally changing previously saved probabilities.
+
+---
+
+## 93.12 Relationship with Weighted Forecast
+
+Day 7 introduced the Weighted Forecast calculation.
+
+The formula is:
+
+```text
+Weighted Value =
+Opportunity Amount × Probability / 100
+```
+
+The existing Django calculation uses:
+
+```python
+weighted_expression = ExpressionWrapper(
+    F("amount") * F("probability") / 100,
+    output_field=DecimalField(
+        max_digits=15,
+        decimal_places=2
+    )
+)
+```
+
+Day 9 improves the quality of the Probability values used by this calculation.
+
+### Example 1 — Proposal
+
+```text
+Opportunity:
+Heat Exchanger Project
+
+Amount:
+¥10,000,000
+
+Stage:
+Proposal
+
+Suggested Probability:
+50%
+```
+
+Calculation:
+
+```text
+¥10,000,000 × 50 / 100
+
+= ¥5,000,000
+```
+
+Weighted Value:
+
+```text
+¥5,000,000
+```
+
+### Example 2 — Manual Adjustment
+
+Suppose the salesperson changes the Probability to:
+
+```text
+60%
+```
+
+The calculation becomes:
+
+```text
+¥10,000,000 × 60 / 100
+
+= ¥6,000,000
+```
+
+Weighted Value:
+
+```text
+¥6,000,000
+```
+
+The weighted forecast therefore uses the actual saved probability.
+
+---
+
+## 93.13 Complete Opportunity Processing Flow
+
+The Day 9 Opportunity workflow is:
+
+```text
+                  Opportunity Form
+                         │
+                         ↓
+                   Select Stage
+                         │
+                         ↓
+                JavaScript Detects
+                    Stage Change
+                         │
+                         ↓
+                 Suggest Probability
+                         │
+                         ↓
+                 User May Override
+                         │
+                         ↓
+                   Submit Form
+                         │
+                         ↓
+                  Django ModelForm
+                         │
+                         ↓
+                    Validation
+                         │
+             ┌───────────┴───────────┐
+             │                       │
+             ↓                       ↓
+           Valid                   Invalid
+             │                       │
+             ↓                       ↓
+        Save Opportunity       Display Errors
+             │
+             ↓
+           SQLite
+             │
+             ↓
+       Opportunity QuerySet
+             │
+             ↓
+       Sales Pipeline
+             │
+             ↓
+       Weighted Forecast
+```
+
+This combines frontend and backend programming concepts.
+
+---
+
+## 93.14 Frontend vs Backend Responsibilities
+
+Day 9 demonstrates the difference between frontend and backend logic.
+
+### Frontend — JavaScript
+
+**File:**
+
+```text
+crm/templates/crm/opportunity_form.html
+```
+
+Responsibilities:
+
+- Detect Stage changes
+- Suggest Probability values
+- Update the input immediately
+- Improve the user experience
+
+### Backend — Django
+
+**Files:**
+
+```text
+crm/models.py
+
+crm/forms.py
+```
+
+Responsibilities:
+
+- Validate submitted data
+- Reject invalid values
+- Enforce form validation rules
+- Save valid Opportunities
+
+The relationship is:
+
+```text
+Frontend
+JavaScript
+    │
+    ↓
+User Experience
+    │
+    ↓
+HTTP Form Submission
+    │
+    ↓
+Backend
+Django
+    │
+    ↓
+Validation
+    │
+    ↓
+Database
+```
+
+JavaScript helps users enter data conveniently.
+
+Django validation ensures that submitted data follows the required rules.
+
+Frontend validation alone is insufficient because browser-side behavior can be bypassed.
+
+---
+
+## 93.15 Testing Automatic Probability
+
+The Opportunity Create page is:
+
+```text
+http://127.0.0.1:8000/opportunities/add/
+```
+
+The following test cases were defined:
+
+| Selected Stage | Expected Probability |
+|---|---:|
+| Lead | 10% |
+| Qualification | 25% |
+| Proposal | 50% |
+| Negotiation | 75% |
+| Closed Won | 100% |
+| Closed Lost | 0% |
+
+Additional tests:
+
+### Test 1 — Automatic Suggestion
+
+```text
+Select:
+Proposal
+
+Expected:
+Probability = 50
+```
+
+### Test 2 — Manual Override
+
+```text
+Select:
+Proposal
+
+Suggested:
+50
+
+Manually Change:
+60
+
+Save Opportunity
+```
+
+Expected result:
+
+```text
+Saved Probability = 60
+```
+
+### Test 3 — Edit Existing Opportunity
+
+Open an existing Opportunity:
+
+```text
+Stage:
+Proposal
+
+Probability:
+60
+```
+
+Expected behavior:
+
+```text
+The saved probability remains 60.
+```
+
+Change the Stage to:
+
+```text
+Negotiation
+```
+
+Expected behavior:
+
+```text
+Probability becomes 75.
+```
+
+### Test 4 — Invalid Probability
+
+Enter:
+
+```text
+Probability:
+150
+```
+
+Expected result:
+
+```text
+Form validation rejects the value.
+```
+
+---
+
+## 93.16 Final Django System Check
+
+The following command can be used to check Django configuration:
+
+```powershell
+python manage.py check
+```
+
+This performs Django's built-in system checks.
+
+It does not replace manually testing the Opportunity form or its business rules.
+
+The application can then be started using:
+
+```powershell
+python manage.py runserver
+```
+
+---
+
+## 93.17 Day 9 Files Modified
+
+The following files were modified:
+
+| File | Purpose |
+|---|---|
+| `crm/models.py` | Add model validators and stage probability mapping |
+| `crm/forms.py` | Add custom Amount and Probability validation |
+| `crm/templates/crm/opportunity_form.html` | Add JavaScript probability suggestions |
+
+No new Django application or database table was required.
+
+The existing Opportunity URLs and CRUD views remain in use.
+
+---
+
+## 93.18 Day 9 Learning Summary
+
+Day 9 introduced or reinforced the following concepts:
+
+```text
+Django
+│
+├── MinValueValidator
+├── MaxValueValidator
+├── Model Field Validation
+├── ModelForm Validation
+├── clean_<field>() Methods
+├── cleaned_data
+├── ValidationError
+└── Decimal
+
+
+Python
+│
+├── Dictionaries
+├── Key-Value Mapping
+└── Conditional Validation
+
+
+JavaScript
+│
+├── DOMContentLoaded
+├── document.getElementById()
+├── const
+├── Objects
+├── addEventListener()
+├── change Events
+└── Updating HTML Input Values
+```
+
+The CRM now has an additional layer of data quality control and a more convenient Opportunity form.
+
+---
+
+## 93.19 CRM Development Progress
+
+```text
+Day 1
+Django Project Setup
+Customer Model
+Admin
+Dashboard
+        ↓
+Day 2
+Customer List
+Customer Create
+Shared Templates
+        ↓
+Day 3
+Customer Detail
+Customer Edit
+Customer Delete
+        ↓
+Day 4
+Customer Search
+Customer Pagination
+        ↓
+Day 5
+Contact Model
+Customer-Contact Relationship
+Contact CRUD
+        ↓
+Day 6
+Opportunity Model
+Opportunity CRUD
+Sales Pipeline
+        ↓
+Day 7
+Pipeline Amounts
+Open Pipeline
+Weighted Forecast
+        ↓
+Day 8
+Opportunity Search
+Stage Filtering
+Opportunity Pagination
+        ↓
+Day 9
+Opportunity Data Validation
+Automatic Probability Suggestions
+```
+
+The Opportunity module now supports:
+
+```text
+Opportunity Management
+│
+├── Customer Relationship
+├── Create / Read / Update / Delete
+├── Search
+├── Stage Filtering
+├── Pagination
+│
+├── Sales Pipeline
+│   ├── Stage Counts
+│   ├── Stage Amounts
+│   ├── Open Pipeline
+│   └── Weighted Forecast
+│
+└── Data Quality
+    ├── Amount Validation
+    ├── Probability Validation
+    ├── Stage Probability Mapping
+    ├── Automatic Suggestions
+    └── Manual Probability Override
+```
+
+Day 9 demonstrates how Django and JavaScript can work together to create a more reliable and user-friendly CRM application.
+
+[⬆ Back to Table of Contents](#table-of-contents)
+
+---
+
+
+
