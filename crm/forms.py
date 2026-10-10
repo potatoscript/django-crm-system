@@ -68,3 +68,23 @@ class OpportunityForm(forms.ModelForm):
                 }
             ),
         }
+
+    def clean_probability(self):
+        probability = self.cleaned_data["probability"]
+
+        if not 0 <= probability <= 100:
+            raise forms.ValidationError(
+                "Probability must be between 0 and 100."
+            )
+
+        return probability
+
+    def clean_amount(self):
+        amount = self.cleaned_data["amount"]
+
+        if amount < 0:
+            raise forms.ValidationError(
+                "Amount cannot be negative."
+            )
+
+        return amount

@@ -102,5 +102,42 @@
 
 </div>
 
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const stageField = document.getElementById("id_stage");
+    const probabilityField = document.getElementById("id_probability");
+
+    const stageProbabilities = {
+        lead: 10,
+        qualification: 25,
+        proposal: 50,
+        negotiation: 75,
+        won: 100,
+        lost: 0
+    };
+
+    if (!stageField || !probabilityField) {
+        return;
+    }
+
+    stageField.addEventListener("change", function () {
+
+        const selectedStage = stageField.value;
+
+        if (
+            Object.prototype.hasOwnProperty.call(
+                stageProbabilities,
+                selectedStage
+            )
+        ) {
+            probabilityField.value =
+                stageProbabilities[selectedStage];
+        }
+
+    });
+
+});
+</script>
 
 {% endblock %}

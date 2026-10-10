@@ -1,5 +1,12 @@
 from django.db import models
 
+from django.core.validators import (
+    MinValueValidator,
+    MaxValueValidator,
+)
+
+from decimal import Decimal
+
 class Customer(models.Model):
     name = models.CharField(max_length=200)
     industry = models.CharField(max_length=100, blank=True)
@@ -50,6 +57,15 @@ class Opportunity(models.Model):
         ("lost", "Closed Lost"),
     ]
 
+    STAGE_PROBABILITIES = {
+        "lead": 10,
+        "qualification": 25,
+        "proposal": 50,
+        "negotiation": 75,
+        "won": 100,
+        "lost": 0,
+    }
+
     customer = models.ForeignKey(
         Customer,
         on_delete=models.CASCADE,
@@ -67,11 +83,19 @@ class Opportunity(models.Model):
     amount = models.DecimalField(
         max_digits=15,
         decimal_places=2,
-        default=0
+        default=0,
+        validators=[
+            MinValueValidator(Decimal("0.00"))
+        ]
     )
 
-    probability = models.PositiveIntegerField(default=0)
-
+    probability = models.PositiveIntegerField(
+        default=0,
+        validators=[
+            MinValueValidator(0),
+            MaxValueValidator(100),
+        ]
+    )
     expected_close_date = models.DateField(
         blank=True,
         null=True
